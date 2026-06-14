@@ -10,12 +10,14 @@ import {
   type DeleteRowConfig,
   type ModifyRowConfig,
 } from "../../lib/sessionStore.js";
-import { analyzeExcelFile, previewChanges, buildMasterExcel } from "../../lib/excelProcessor.js";
+import { analyzeExcelFile, previewChanges, buildMasterExcel, readCurrentValues } from "../../lib/excelProcessor.js";
 import {
   GetSessionParams,
   UpdateSessionParams,
   UpdateSessionBody,
   UploadFilesParams,
+  ReadCurrentValuesParams,
+  ReadCurrentValuesBody,
   PreviewChangesParams,
   ExportSessionParams,
   DownloadSessionParams,
@@ -55,6 +57,7 @@ function serializeSession(session: ReturnType<typeof getSession>) {
     files: session.files.map((f) => ({
       id: f.id,
       originalName: f.originalName,
+      locationName: f.locationName,
       sheetNames: f.sheetNames,
       detectedMonths: f.detectedMonths,
     })),
@@ -184,6 +187,42 @@ router.post(
     res.json(serializeSession(updated));
   },
 );
+
+// POST /sessions/:sessionId/read-values
+router.post("/sessions/:sessionId/read-values", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId;
+  const params = ReadCurrentValuesParams.safeParse({ sessionId: raw });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const session = getSession(params.data.sessionId);
+  if (!session) {
+    res.status(404).json({ error: "Session not found" });
+    return;
+  }
+
+  const body = ReadCurrentValuesBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  if (!session.selectedMonth) {
+    res.status(400).json({ error: "No month selected" });
+    return;
+  }
+
+  const values = await readCurrentValues(
+    session.files,
+    body.data.locationName,
+    session.selectedMonth,
+    body.data.rowNumbers,
+  );
+
+  res.json({ values });
+});
 
 // POST /sessions/:sessionId/preview
 router.post("/sessions/:sessionId/preview", async (req, res): Promise<void> => {

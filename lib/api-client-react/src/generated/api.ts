@@ -23,6 +23,8 @@ import type {
   FileUploadInput,
   HealthStatus,
   PreviewResult,
+  ReadValuesInput,
+  ReadValuesResult,
   Session,
   SessionUpdate
 } from './api.schemas';
@@ -407,6 +409,78 @@ export const useUploadFiles = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUploadFilesMutationOptions(options));
+    }
+
+export const getReadCurrentValuesUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/read-values`
+}
+
+/**
+ * @summary Read current Hours and EFTE values for specific rows from a location's sheet
+ */
+export const readCurrentValues = async (sessionId: string,
+    readValuesInput: ReadValuesInput, options?: RequestInit): Promise<ReadValuesResult> => {
+
+  return customFetch<ReadValuesResult>(getReadCurrentValuesUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      readValuesInput,)
+  }
+);}
+
+
+
+
+export const getReadCurrentValuesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof readCurrentValues>>, TError,{sessionId: string;data: BodyType<ReadValuesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof readCurrentValues>>, TError,{sessionId: string;data: BodyType<ReadValuesInput>}, TContext> => {
+
+const mutationKey = ['readCurrentValues'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof readCurrentValues>>, {sessionId: string;data: BodyType<ReadValuesInput>}> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  readCurrentValues(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReadCurrentValuesMutationResult = NonNullable<Awaited<ReturnType<typeof readCurrentValues>>>
+    export type ReadCurrentValuesMutationBody = BodyType<ReadValuesInput>
+    export type ReadCurrentValuesMutationError = ErrorType<void>
+
+    /**
+ * @summary Read current Hours and EFTE values for specific rows from a location's sheet
+ */
+export const useReadCurrentValues = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof readCurrentValues>>, TError,{sessionId: string;data: BodyType<ReadValuesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof readCurrentValues>>,
+        TError,
+        {sessionId: string;data: BodyType<ReadValuesInput>},
+        TContext
+      > => {
+      return useMutation(getReadCurrentValuesMutationOptions(options));
     }
 
 export const getPreviewChangesUrl = (sessionId: string,) => {

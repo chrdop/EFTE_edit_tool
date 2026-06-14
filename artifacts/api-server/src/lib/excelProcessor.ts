@@ -83,6 +83,7 @@ function findMonthCols(ws: XLSX.WorkSheet, month: string): MonthCols | null {
 export async function analyzeExcelFile(filePath: string): Promise<{
   sheetNames: string[];
   detectedMonths: string[];
+  locationName: string;
 }> {
   const workbook = XLSX.readFile(filePath, {
     cellStyles: true,
@@ -93,10 +94,17 @@ export async function analyzeExcelFile(filePath: string): Promise<{
 
   const sheetNames = workbook.SheetNames;
   const monthSet = new Set<string>();
+  let locationName = "";
 
   for (const sheetName of sheetNames) {
     const ws = workbook.Sheets[sheetName];
     if (!ws || !ws["!ref"]) continue;
+
+    // Extract location name from A2 (row index 1, col index 0)
+    if (!locationName) {
+      const a2 = ws[XLSX.utils.encode_cell({ r: 1, c: 0 })];
+      if (a2?.v) locationName = String(a2.v).trim();
+    }
 
     const range = XLSX.utils.decode_range(ws["!ref"]);
     for (let row1 = 7; row1 <= 10; row1++) {
@@ -114,7 +122,41 @@ export async function analyzeExcelFile(filePath: string): Promise<{
     (a, b) => CANONICAL_MONTHS.indexOf(a) - CANONICAL_MONTHS.indexOf(b),
   );
 
-  return { sheetNames, detectedMonths };
+  return { sheetNames, detectedMonths, locationName };
+}
+
+export interface RowCurrentValue {
+  rowNumber: number;
+  hours: number | null;
+  efte: number | null;
+}
+
+export async function readCurrentValues(
+  files: UploadedFile[],
+  locationName: string,
+  month: string,
+  rowNumbers: number[],
+): Promise<RowCurrentValue[]> {
+  // Find the file whose locationName matches
+  const file = files.find((f) => f.locationName === locationName);
+  if (!file) return rowNumbers.map((r) => ({ rowNumber: r, hours: null, efte: null }));
+
+  const workbook = XLSX.readFile(file.filePath, { cellStyles: true, cellFormula: true });
+
+  for (const sheetName of workbook.SheetNames) {
+    const ws = workbook.Sheets[sheetName];
+    if (!ws) continue;
+    const cols = findMonthCols(ws, month);
+    if (!cols) continue;
+
+    return rowNumbers.map((rowNumber) => ({
+      rowNumber,
+      hours: getCellValue(ws, rowNumber, cols.hoursCol0),
+      efte: getCellValue(ws, rowNumber, cols.efteCol0),
+    }));
+  }
+
+  return rowNumbers.map((r) => ({ rowNumber: r, hours: null, efte: null }));
 }
 
 export interface PreviewDeleteRow {

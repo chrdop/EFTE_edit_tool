@@ -5,10 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface UploadedFile {
-  id: string;
-  originalName: string;
+export interface ReadValuesInput {
   locationName: string;
-  sheetNames: string[];
-  detectedMonths: string[];
+  rowNumbers: number[];
 }

@@ -103,6 +103,34 @@ paths:
         "404":
           description: Not found
 
+  /sessions/{sessionId}/read-values:
+    post:
+      operationId: readCurrentValues
+      summary: Read current Hours and EFTE values for specific rows from a location's sheet
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReadValuesInput"
+      responses:
+        "200":
+          description: Current values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadValuesResult"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+
   /sessions/{sessionId}/preview:
     post:
       operationId: previewChanges
@@ -188,11 +216,13 @@ components:
 
     UploadedFile:
       type: object
-      required: [id, originalName, sheetNames, detectedMonths]
+      required: [id, originalName, sheetNames, detectedMonths, locationName]
       properties:
         id:
           type: string
         originalName:
+          type: string
+        locationName:
           type: string
         sheetNames:
           type: array
@@ -306,6 +336,37 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PreviewModifyRow"
+
+    ReadValuesInput:
+      type: object
+      required: [locationName, rowNumbers]
+      properties:
+        locationName:
+          type: string
+        rowNumbers:
+          type: array
+          items:
+            type: integer
+
+    RowCurrentValue:
+      type: object
+      required: [rowNumber]
+      properties:
+        rowNumber:
+          type: integer
+        hours:
+          type: ["number", "null"]
+        efte:
+          type: ["number", "null"]
+
+    ReadValuesResult:
+      type: object
+      required: [values]
+      properties:
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/RowCurrentValue"
 
     ExportResult:
       type: object

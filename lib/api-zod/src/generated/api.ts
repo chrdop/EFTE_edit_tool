@@ -27,6 +27,7 @@ export const GetSessionResponse = zod.object({
   "files": zod.array(zod.object({
   "id": zod.string(),
   "originalName": zod.string(),
+  "locationName": zod.string(),
   "sheetNames": zod.array(zod.string()),
   "detectedMonths": zod.array(zod.string())
 })),
@@ -71,6 +72,7 @@ export const UpdateSessionResponse = zod.object({
   "files": zod.array(zod.object({
   "id": zod.string(),
   "originalName": zod.string(),
+  "locationName": zod.string(),
   "sheetNames": zod.array(zod.string()),
   "detectedMonths": zod.array(zod.string())
 })),
@@ -105,6 +107,7 @@ export const UploadFilesResponse = zod.object({
   "files": zod.array(zod.object({
   "id": zod.string(),
   "originalName": zod.string(),
+  "locationName": zod.string(),
   "sheetNames": zod.array(zod.string()),
   "detectedMonths": zod.array(zod.string())
 })),
@@ -120,6 +123,27 @@ export const UploadFilesResponse = zod.object({
   "divisor": zod.number()
 })),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
+})
+
+
+/**
+ * @summary Read current Hours and EFTE values for specific rows from a location's sheet
+ */
+export const ReadCurrentValuesParams = zod.object({
+  "sessionId": zod.coerce.string()
+})
+
+export const ReadCurrentValuesBody = zod.object({
+  "locationName": zod.string(),
+  "rowNumbers": zod.array(zod.number())
+})
+
+export const ReadCurrentValuesResponse = zod.object({
+  "values": zod.array(zod.object({
+  "rowNumber": zod.number(),
+  "hours": zod.number().nullish(),
+  "efte": zod.number().nullish()
+}))
 })
 
 

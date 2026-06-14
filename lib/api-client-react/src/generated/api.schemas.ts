@@ -15,6 +15,7 @@ export interface FileUploadInput {
 export interface UploadedFile {
   id: string;
   originalName: string;
+  locationName: string;
   sheetNames: string[];
   detectedMonths: string[];
 }
@@ -91,6 +92,23 @@ export interface PreviewModifyRow {
 export interface PreviewResult {
   deletePreview: PreviewDeleteRow[];
   modifyPreview: PreviewModifyRow[];
+}
+
+export interface ReadValuesInput {
+  locationName: string;
+  rowNumbers: number[];
+}
+
+export interface RowCurrentValue {
+  rowNumber: number;
+  /** @nullable */
+  hours?: number | null;
+  /** @nullable */
+  efte?: number | null;
+}
+
+export interface ReadValuesResult {
+  values: RowCurrentValue[];
 }
 
 export interface ExportResult {

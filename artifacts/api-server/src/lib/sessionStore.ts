@@ -6,6 +6,7 @@ export interface UploadedFile {
   id: string;
   originalName: string;
   filePath: string;
+  locationName: string;
   sheetNames: string[];
   detectedMonths: string[];
 }

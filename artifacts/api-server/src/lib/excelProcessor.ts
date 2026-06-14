@@ -209,6 +209,56 @@ function calcNew(current: number | null, adjustment: number, plusMinus: "+" | "-
   return Math.round(result * 100) / 100;
 }
 
+interface PrecomputedValue {
+  newHours: number | null;
+  newEfte: number | null;
+}
+
+/**
+ * For each "all-locations" rule (divisor > 0), pre-read the source location file
+ * and compute the new Hours/EFTE value once. That computed value is then written
+ * to every location — not each location's own value adjusted individually.
+ */
+function precomputeSourceValues(
+  files: UploadedFile[],
+  month: string,
+  modifyRows: ModifyRowConfig[],
+): Map<string, PrecomputedValue> {
+  const map = new Map<string, PrecomputedValue>();
+
+  for (const mr of modifyRows) {
+    if (mr.divisor === 0) continue; // single-location rules don't need pre-computation
+    const key = `${mr.locationName}:${mr.rowNumber}`;
+    if (map.has(key)) continue;
+
+    const sourceFile = files.find((f) => f.locationName === mr.locationName);
+    if (!sourceFile) {
+      map.set(key, { newHours: null, newEfte: null });
+      continue;
+    }
+
+    const wb = XLSX.readFile(sourceFile.filePath, { cellStyles: true, cellFormula: true });
+    let found = false;
+    for (const sheetName of wb.SheetNames) {
+      const ws = wb.Sheets[sheetName];
+      if (!ws) continue;
+      const cols = findMonthCols(ws, month);
+      if (!cols) continue;
+      const sourceHours = getCellValue(ws, mr.rowNumber, cols.hoursCol0);
+      const sourceEfte = getCellValue(ws, mr.rowNumber, cols.efteCol0);
+      map.set(key, {
+        newHours: calcNew(sourceHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor),
+        newEfte: calcNew(sourceEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor),
+      });
+      found = true;
+      break;
+    }
+    if (!found) map.set(key, { newHours: null, newEfte: null });
+  }
+
+  return map;
+}
+
 export async function previewChanges(
   files: UploadedFile[],
   month: string,
@@ -217,6 +267,9 @@ export async function previewChanges(
 ): Promise<{ deletePreview: PreviewDeleteRow[]; modifyPreview: PreviewModifyRow[] }> {
   const deletePreview: PreviewDeleteRow[] = [];
   const modifyPreview: PreviewModifyRow[] = [];
+
+  // Pre-compute new values from the source location for all-locations rules
+  const sourceValues = precomputeSourceValues(files, month, modifyRows);
 
   for (const file of files) {
     const workbook = XLSX.readFile(file.filePath, { cellStyles: true, cellFormula: true });
@@ -244,14 +297,29 @@ export async function previewChanges(
 
         const currentHours = getCellValue(ws, mr.rowNumber, cols.hoursCol0);
         const currentEfte = getCellValue(ws, mr.rowNumber, cols.efteCol0);
+
+        let newHours: number | null;
+        let newEfte: number | null;
+
+        if (mr.divisor !== 0) {
+          // All-locations: use the pre-computed value from the source location
+          const pre = sourceValues.get(`${mr.locationName}:${mr.rowNumber}`);
+          newHours = pre?.newHours ?? null;
+          newEfte = pre?.newEfte ?? null;
+        } else {
+          // Single-location: compute from this file's own current value
+          newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor);
+          newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor);
+        }
+
         modifyPreview.push({
           rowNumber: mr.rowNumber,
           sheetName,
           locationName: file.locationName,
           currentHours,
           currentEfte,
-          newHours: calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor),
-          newEfte: calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor),
+          newHours,
+          newEfte,
         });
       }
     }
@@ -268,6 +336,9 @@ export async function buildMasterExcel(
   outputPath: string,
 ): Promise<void> {
   const masterWorkbook = XLSX.utils.book_new();
+
+  // Pre-compute new values from source locations for all-locations rules
+  const sourceValues = precomputeSourceValues(files, month, modifyRows);
 
   const usedSheetNames = new Set<string>();
 
@@ -302,16 +373,27 @@ export async function buildMasterExcel(
         }
 
         // Modify rows: recalculate and write new values
-        // divisor=0 → only apply to matching location; divisor>0 → apply to all locations
+        // divisor=0 → only apply to matching location using its own current value
+        // divisor>0 → write the pre-computed value (from source location) to all locations
         for (const mr of modifyRows) {
           const appliesToThisFile = mr.divisor !== 0 || file.locationName === mr.locationName;
           if (!appliesToThisFile) continue;
 
-          const currentHours = getCellValue(targetWs, mr.rowNumber, cols.hoursCol0);
-          const currentEfte = getCellValue(targetWs, mr.rowNumber, cols.efteCol0);
+          let newHours: number | null;
+          let newEfte: number | null;
 
-          const newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor);
-          const newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor);
+          if (mr.divisor !== 0) {
+            // All-locations: use the value pre-computed from the source location
+            const pre = sourceValues.get(`${mr.locationName}:${mr.rowNumber}`);
+            newHours = pre?.newHours ?? null;
+            newEfte = pre?.newEfte ?? null;
+          } else {
+            // Single-location: compute from this file's own current value
+            const currentHours = getCellValue(targetWs, mr.rowNumber, cols.hoursCol0);
+            const currentEfte = getCellValue(targetWs, mr.rowNumber, cols.efteCol0);
+            newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor);
+            newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor);
+          }
 
           if (newHours !== null) {
             const addr = cellAddr(mr.rowNumber, cols.hoursCol0);

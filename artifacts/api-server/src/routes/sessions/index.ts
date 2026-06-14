@@ -21,7 +21,11 @@ import {
   PreviewChangesParams,
   ExportSessionParams,
   DownloadSessionParams,
+  SendEmailParams,
+  SendEmailBody,
 } from "@workspace/api-zod";
+import { Resend } from "resend";
+import { generateReportPdf } from "../../lib/pdfGenerator.js";
 
 const router: IRouter = Router();
 
@@ -332,6 +336,109 @@ router.get("/sessions/:sessionId/download", async (req, res): Promise<void> => {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   );
   res.sendFile(session.exportedFilePath);
+});
+
+// POST /sessions/:sessionId/send-email
+router.post("/sessions/:sessionId/send-email", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId;
+  const params = SendEmailParams.safeParse({ sessionId: rawId });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const body = SendEmailBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const session = getSession(params.data.sessionId);
+  if (!session) {
+    res.status(404).json({ error: "Session not found" });
+    return;
+  }
+
+  if (!session.selectedMonth) {
+    res.status(400).json({ error: "No month selected" });
+    return;
+  }
+
+  if (session.files.length === 0) {
+    res.status(400).json({ error: "No files uploaded" });
+    return;
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    res.status(503).json({ error: "E-Mail-Service nicht konfiguriert. Bitte Resend-Integration einrichten." });
+    return;
+  }
+
+  // Build master Excel if not already done
+  const outputPath = path.join(getUploadsDir(), `${params.data.sessionId}-master.xlsx`);
+  if (!session.exportedFilePath || !fs.existsSync(outputPath)) {
+    await buildMasterExcel(
+      session.files,
+      session.selectedMonth,
+      session.deleteRows,
+      session.modifyRows,
+      outputPath,
+    );
+    updateSession(params.data.sessionId, { status: "exported", exportedFilePath: outputPath });
+  }
+
+  // Generate preview data for PDF report
+  const preview = await previewChanges(
+    session.files,
+    session.selectedMonth,
+    session.deleteRows,
+    session.modifyRows,
+  );
+
+  // Generate PDF report
+  const pdfBuffer = await generateReportPdf(session, preview);
+  const excelBuffer = fs.readFileSync(outputPath);
+
+  const excelFilename = `Master_Cluster_Austria_EFTE_${session.selectedMonth}.xlsx`;
+  const pdfFilename = `Anpassungsbericht_${session.selectedMonth}.pdf`;
+
+  const fromAddress = process.env.RESEND_FROM_EMAIL ?? "noreply@resend.dev";
+
+  const resend = new Resend(apiKey);
+  const emailResult = await resend.emails.send({
+    from: fromAddress,
+    to: body.data.recipientEmail,
+    subject: `Master Cluster Austria EFTE – ${session.selectedMonth}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px;">
+        <h2 style="color: #1e3a5f;">Excel Merge &amp; Edit Tool</h2>
+        <p>Im Anhang finden Sie:</p>
+        <ul>
+          <li><strong>${excelFilename}</strong> – die zusammengeführte Master-Excel-Datei</li>
+          <li><strong>${pdfFilename}</strong> – Anpassungsbericht (Zeilen löschen &amp; anpassen)</li>
+        </ul>
+        <p style="color:#6b7280; font-size:12px;">Monat: ${session.selectedMonth} · Standorte: ${session.files.length}</p>
+      </div>
+    `,
+    attachments: [
+      {
+        filename: excelFilename,
+        content: excelBuffer.toString("base64"),
+      },
+      {
+        filename: pdfFilename,
+        content: pdfBuffer.toString("base64"),
+      },
+    ],
+  });
+
+  if (emailResult.error) {
+    res.status(500).json({ success: false, message: `E-Mail-Fehler: ${emailResult.error.message}` });
+    return;
+  }
+
+  res.json({ success: true, message: `E-Mail erfolgreich an ${body.data.recipientEmail} gesendet.` });
 });
 
 export default router;

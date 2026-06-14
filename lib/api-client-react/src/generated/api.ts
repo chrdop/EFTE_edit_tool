@@ -19,6 +19,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  EmailRequest,
+  EmailResult,
   ExportResult,
   FileUploadInput,
   HealthStatus,
@@ -621,6 +623,78 @@ export const useExportSession = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getExportSessionMutationOptions(options));
+    }
+
+export const getSendEmailUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/send-email`
+}
+
+/**
+ * @summary Send master Excel and PDF report via email
+ */
+export const sendEmail = async (sessionId: string,
+    emailRequest: EmailRequest, options?: RequestInit): Promise<EmailResult> => {
+
+  return customFetch<EmailResult>(getSendEmailUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      emailRequest,)
+  }
+);}
+
+
+
+
+export const getSendEmailMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendEmail>>, TError,{sessionId: string;data: BodyType<EmailRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendEmail>>, TError,{sessionId: string;data: BodyType<EmailRequest>}, TContext> => {
+
+const mutationKey = ['sendEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendEmail>>, {sessionId: string;data: BodyType<EmailRequest>}> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  sendEmail(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendEmailMutationResult = NonNullable<Awaited<ReturnType<typeof sendEmail>>>
+    export type SendEmailMutationBody = BodyType<EmailRequest>
+    export type SendEmailMutationError = ErrorType<void>
+
+    /**
+ * @summary Send master Excel and PDF report via email
+ */
+export const useSendEmail = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendEmail>>, TError,{sessionId: string;data: BodyType<EmailRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendEmail>>,
+        TError,
+        {sessionId: string;data: BodyType<EmailRequest>},
+        TContext
+      > => {
+      return useMutation(getSendEmailMutationOptions(options));
     }
 
 export const getDownloadSessionUrl = (sessionId: string,) => {

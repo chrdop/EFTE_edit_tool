@@ -175,6 +175,34 @@ paths:
         "404":
           description: Not found
 
+  /sessions/{sessionId}/send-email:
+    post:
+      operationId: sendEmail
+      summary: Send master Excel and PDF report via email
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailRequest"
+      responses:
+        "200":
+          description: Email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailResult"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+
   /sessions/{sessionId}/download:
     get:
       operationId: downloadSession
@@ -388,4 +416,20 @@ components:
         downloadUrl:
           type: string
         filename:
+          type: string
+
+    EmailRequest:
+      type: object
+      required: [recipientEmail]
+      properties:
+        recipientEmail:
+          type: string
+
+    EmailResult:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+        message:
           type: string

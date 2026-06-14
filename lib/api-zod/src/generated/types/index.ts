@@ -6,6 +6,8 @@
  */
 
 export * from './deleteRowConfig';
+export * from './emailRequest';
+export * from './emailResult';
 export * from './exportResult';
 export * from './fileUploadInput';
 export * from './healthStatus';

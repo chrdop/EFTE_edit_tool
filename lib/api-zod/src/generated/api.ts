@@ -194,6 +194,23 @@ export const ExportSessionResponse = zod.object({
 
 
 /**
+ * @summary Send master Excel and PDF report via email
+ */
+export const SendEmailParams = zod.object({
+  "sessionId": zod.coerce.string()
+})
+
+export const SendEmailBody = zod.object({
+  "recipientEmail": zod.string()
+})
+
+export const SendEmailResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
  * @summary Download the processed master Excel file
  */
 export const DownloadSessionParams = zod.object({

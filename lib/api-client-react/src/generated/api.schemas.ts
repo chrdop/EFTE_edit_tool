@@ -123,3 +123,12 @@ export interface ExportResult {
   filename: string;
 }
 
+export interface EmailRequest {
+  recipientEmail: string;
+}
+
+export interface EmailResult {
+  success: boolean;
+  message: string;
+}
+

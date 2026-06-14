@@ -101,7 +101,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
   };
 
   const handleNext = () => {
-    const validRows = rows.filter((r) => r.rowNumber > 0 && r.locationName && r.divisor !== 0);
+    const validRows = rows.filter((r) => r.rowNumber > 0 && r.locationName);
     updateSession(
       { sessionId, data: { modifyRows: validRows } },
       {
@@ -226,8 +226,12 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                       <TableCell>
                         <Input
                           type="number"
-                          value={row.hoursAdjustment || ""}
-                          onChange={(e) => updateRow(index, "hoursAdjustment", parseFloat(e.target.value) || 0)}
+                          step="any"
+                          value={row.hoursAdjustment}
+                          onChange={(e) => {
+                            const v = e.target.valueAsNumber;
+                            updateRow(index, "hoursAdjustment", isNaN(v) ? 0 : v);
+                          }}
                           className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           placeholder="0"
                         />
@@ -237,8 +241,12 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                       <TableCell>
                         <Input
                           type="number"
-                          value={row.efteAdjustment || ""}
-                          onChange={(e) => updateRow(index, "efteAdjustment", parseFloat(e.target.value) || 0)}
+                          step="any"
+                          value={row.efteAdjustment}
+                          onChange={(e) => {
+                            const v = e.target.valueAsNumber;
+                            updateRow(index, "efteAdjustment", isNaN(v) ? 0 : v);
+                          }}
                           className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           placeholder="0"
                         />

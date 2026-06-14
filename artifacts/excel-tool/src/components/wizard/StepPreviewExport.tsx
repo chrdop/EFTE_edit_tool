@@ -126,9 +126,9 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
                 <FileText className="w-4 h-4 text-blue-500" />
                 <span className="text-sm font-semibold text-blue-700">Rows to be adjusted</span>
               </div>
-              <ScrollArea className="max-h-[480px]">
+              <div className="overflow-y-auto max-h-[480px]">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow className="bg-muted/20">
                       <TableHead className="text-xs">Row</TableHead>
                       <TableHead className="text-xs">Location</TableHead>
@@ -159,7 +159,7 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
                     ))}
                   </TableBody>
                 </Table>
-              </ScrollArea>
+              </div>
             </div>
           )}
         </div>

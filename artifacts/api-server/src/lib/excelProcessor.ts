@@ -187,6 +187,7 @@ export async function readCurrentValues(
 export interface PreviewDeleteRow {
   rowNumber: number;
   sheetName: string;
+  locationName: string;
   currentHours: number | null;
   currentEfte: number | null;
 }
@@ -194,6 +195,7 @@ export interface PreviewDeleteRow {
 export interface PreviewModifyRow {
   rowNumber: number;
   sheetName: string;
+  locationName: string;
   currentHours: number | null;
   currentEfte: number | null;
   newHours: number | null;
@@ -229,6 +231,7 @@ export async function previewChanges(
         deletePreview.push({
           rowNumber: dr.rowNumber,
           sheetName,
+          locationName: file.locationName,
           currentHours: getCellValue(ws, dr.rowNumber, cols.hoursCol0),
           currentEfte: getCellValue(ws, dr.rowNumber, cols.efteCol0),
         });
@@ -244,6 +247,7 @@ export async function previewChanges(
         modifyPreview.push({
           rowNumber: mr.rowNumber,
           sheetName,
+          locationName: file.locationName,
           currentHours,
           currentEfte,
           newHours: calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor),

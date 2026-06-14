@@ -164,12 +164,14 @@ export const PreviewChangesResponse = zod.object({
   "deletePreview": zod.array(zod.object({
   "rowNumber": zod.number(),
   "sheetName": zod.string(),
+  "locationName": zod.string(),
   "currentHours": zod.number().nullish(),
   "currentEfte": zod.number().nullish()
 })),
   "modifyPreview": zod.array(zod.object({
   "rowNumber": zod.number(),
   "sheetName": zod.string(),
+  "locationName": zod.string(),
   "currentHours": zod.number().nullish(),
   "currentEfte": zod.number().nullish(),
   "newHours": zod.number().nullable(),

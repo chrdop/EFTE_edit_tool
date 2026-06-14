@@ -71,6 +71,7 @@ export interface SessionUpdate {
 export interface PreviewDeleteRow {
   rowNumber: number;
   sheetName: string;
+  locationName: string;
   /** @nullable */
   currentHours?: number | null;
   /** @nullable */
@@ -80,6 +81,7 @@ export interface PreviewDeleteRow {
 export interface PreviewModifyRow {
   rowNumber: number;
   sheetName: string;
+  locationName: string;
   /** @nullable */
   currentHours?: number | null;
   /** @nullable */

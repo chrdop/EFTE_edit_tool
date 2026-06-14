@@ -150,7 +150,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="min-w-[190px]">Standort</TableHead>
-                  <TableHead className="w-16">Zeile</TableHead>
+                  <TableHead className="w-24">Zeile</TableHead>
                   <TableHead className="w-16">+/−</TableHead>
                   <TableHead className="min-w-[110px]">Hours Adj.</TableHead>
                   <TableHead className="min-w-[110px]">EFTE Adj.</TableHead>
@@ -201,7 +201,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           min={1}
                           value={row.rowNumber || ""}
                           onChange={(e) => updateRow(index, "rowNumber", parseInt(e.target.value) || 0)}
-                          className="w-full font-mono text-xs"
+                          className="w-full font-mono text-sm font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           placeholder="#"
                         />
                       </TableCell>
@@ -228,7 +228,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           type="number"
                           value={row.hoursAdjustment || ""}
                           onChange={(e) => updateRow(index, "hoursAdjustment", parseFloat(e.target.value) || 0)}
-                          className="w-full font-mono text-xs"
+                          className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           placeholder="0"
                         />
                       </TableCell>
@@ -239,7 +239,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           type="number"
                           value={row.efteAdjustment || ""}
                           onChange={(e) => updateRow(index, "efteAdjustment", parseFloat(e.target.value) || 0)}
-                          className="w-full font-mono text-xs"
+                          className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           placeholder="0"
                         />
                       </TableCell>
@@ -253,7 +253,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                             step={0.01}
                             value={row.divisor === 0 ? "0" : (row.divisor || "")}
                             onChange={(e) => updateRow(index, "divisor", parseFloat(e.target.value) ?? 1)}
-                            className="w-full font-mono text-xs"
+                            className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                           <p className={`text-[10px] leading-tight font-medium ${isAllLocations ? "text-amber-600" : "text-blue-600"}`}>
                             {isAllLocations ? "alle Standorte" : "nur Standort"}

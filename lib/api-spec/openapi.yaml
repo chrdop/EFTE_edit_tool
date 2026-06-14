@@ -298,11 +298,13 @@ components:
 
     PreviewDeleteRow:
       type: object
-      required: [rowNumber, sheetName]
+      required: [rowNumber, sheetName, locationName]
       properties:
         rowNumber:
           type: integer
         sheetName:
+          type: string
+        locationName:
           type: string
         currentHours:
           type: ["number", "null"]
@@ -311,11 +313,13 @@ components:
 
     PreviewModifyRow:
       type: object
-      required: [rowNumber, sheetName, newHours, newEfte]
+      required: [rowNumber, sheetName, locationName, newHours, newEfte]
       properties:
         rowNumber:
           type: integer
         sheetName:
+          type: string
+        locationName:
           type: string
         currentHours:
           type: ["number", "null"]

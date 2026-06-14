@@ -8,6 +8,7 @@
 export interface PreviewDeleteRow {
   rowNumber: number;
   sheetName: string;
+  locationName: string;
   /** @nullable */
   currentHours?: number | null;
   /** @nullable */

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Session, usePreviewChanges, useExportSession } from "@workspace/api-client-react";
-import { Download, AlertCircle, FileText, CheckCircle2, ChevronRight } from "lucide-react";
+import { Download, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,8 +27,8 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
       {
         onSuccess: (data) => {
           window.location.href = data.downloadUrl;
-        }
-      }
+        },
+      },
     );
   };
 
@@ -40,16 +40,20 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Preview & Export</h2>
-          <p className="text-sm text-muted-foreground mt-1">Review the changes before applying them to the master Excel file.</p>
+          <h2 className="text-xl font-bold tracking-tight">Vorschau & Export</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Änderungen prüfen bevor die Master-Excel-Datei erstellt wird.
+          </p>
         </div>
       </div>
 
       {isPreviewError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Preview Failed</AlertTitle>
-          <AlertDescription>Failed to generate preview. Ensure your configured rows exist in the uploaded files.</AlertDescription>
+          <AlertTitle>Vorschau fehlgeschlagen</AlertTitle>
+          <AlertDescription>
+            Vorschau konnte nicht geladen werden. Bitte sicherstellen, dass die konfigurierten Zeilen in den Dateien vorhanden sind.
+          </AlertDescription>
         </Alert>
       )}
 
@@ -66,36 +70,41 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
           {!hasChanges ? (
             <Alert className="bg-muted/50">
               <CheckCircle2 className="h-4 w-4 text-primary" />
-              <AlertTitle>No specific row changes configured</AlertTitle>
+              <AlertTitle>Keine Zeilenänderungen konfiguriert</AlertTitle>
               <AlertDescription>
-                The master file will be generated without any row deletions or modifications.
+                Die Master-Datei wird ohne Lösch- oder Anpassungsregeln erstellt.
               </AlertDescription>
             </Alert>
           ) : (
             <>
+              {/* Delete preview */}
               {hasDeletes && (
                 <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
                   <div className="bg-destructive/10 px-4 py-3 border-b border-destructive/20 flex items-center">
                     <AlertCircle className="h-4 w-4 text-destructive mr-2" />
-                    <h3 className="font-semibold text-sm text-destructive">Rows to be Zeroed (Cleared)</h3>
+                    <h3 className="font-semibold text-sm text-destructive">Zeilen die geleert werden (auf 0 gesetzt)</h3>
                   </div>
                   <ScrollArea className="max-h-60">
                     <Table>
                       <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
                         <TableRow>
-                          <TableHead className="w-20">Row</TableHead>
-                          <TableHead>Sheet Name</TableHead>
-                          <TableHead className="text-right">Current Hours</TableHead>
-                          <TableHead className="text-right">Current EFTE</TableHead>
+                          <TableHead className="w-16">Zeile</TableHead>
+                          <TableHead>Standort</TableHead>
+                          <TableHead className="text-right">Ist Hours</TableHead>
+                          <TableHead className="text-right">Ist EFTE</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {previewData.deletePreview.map((row, i) => (
                           <TableRow key={i}>
                             <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
-                            <TableCell className="text-xs">{row.sheetName}</TableCell>
-                            <TableCell className="text-right font-mono text-xs line-through text-muted-foreground">{row.currentHours ?? "-"}</TableCell>
-                            <TableCell className="text-right font-mono text-xs line-through text-muted-foreground">{row.currentEfte ?? "-"}</TableCell>
+                            <TableCell className="text-xs">{row.locationName || row.sheetName}</TableCell>
+                            <TableCell className="text-right font-mono text-xs line-through text-muted-foreground">
+                              {row.currentHours ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs line-through text-muted-foreground">
+                              {row.currentEfte ?? "—"}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -104,36 +113,41 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
                 </div>
               )}
 
+              {/* Modify preview */}
               {hasModifies && (
                 <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
                   <div className="bg-primary/10 px-4 py-3 border-b border-primary/20 flex items-center">
                     <FileText className="h-4 w-4 text-primary mr-2" />
-                    <h3 className="font-semibold text-sm text-primary">Rows to be Modified</h3>
+                    <h3 className="font-semibold text-sm text-primary">Zeilen die angepasst werden</h3>
                   </div>
                   <ScrollArea className="max-h-96 overflow-auto">
                     <Table>
                       <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
                         <TableRow>
-                          <TableHead className="w-20">Row</TableHead>
-                          <TableHead>Sheet Name</TableHead>
-                          <TableHead className="text-right">Hours (Before)</TableHead>
-                          <TableHead className="text-right">Hours (After)</TableHead>
-                          <TableHead className="text-right">EFTE (Before)</TableHead>
-                          <TableHead className="text-right">EFTE (After)</TableHead>
+                          <TableHead className="w-16">Zeile</TableHead>
+                          <TableHead>Standort</TableHead>
+                          <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Ist Hours</TableHead>
+                          <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Ist EFTE</TableHead>
+                          <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">Hours neu</TableHead>
+                          <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">EFTE neu</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {previewData.modifyPreview.map((row, i) => (
                           <TableRow key={i}>
                             <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
-                            <TableCell className="text-xs">{row.sheetName}</TableCell>
-                            <TableCell className="text-right font-mono text-xs text-muted-foreground">{row.currentHours ?? "-"}</TableCell>
-                            <TableCell className="text-right font-mono text-xs font-semibold text-primary">
-                              {row.newHours?.toFixed(2) ?? "-"}
+                            <TableCell className="text-xs">{row.locationName || row.sheetName}</TableCell>
+                            <TableCell className="text-right font-mono text-xs bg-blue-50/40 text-muted-foreground">
+                              {row.currentHours ?? "—"}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-xs text-muted-foreground">{row.currentEfte ?? "-"}</TableCell>
-                            <TableCell className="text-right font-mono text-xs font-semibold text-primary">
-                              {row.newEfte?.toFixed(2) ?? "-"}
+                            <TableCell className="text-right font-mono text-xs bg-blue-50/40 text-muted-foreground">
+                              {row.currentEfte ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs bg-primary/5 font-semibold text-primary">
+                              {row.newHours?.toFixed(2) ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs bg-primary/5 font-semibold text-primary">
+                              {row.newEfte?.toFixed(2) ?? "—"}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -149,20 +163,20 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
 
       <div className="pt-6 flex justify-between border-t mt-8">
         <Button variant="outline" onClick={onBack} size="lg">
-          Back
+          Zurück
         </Button>
-        <Button 
-          onClick={handleExport} 
-          disabled={isExporting || isPreviewLoading || isPreviewError} 
-          size="lg" 
+        <Button
+          onClick={handleExport}
+          disabled={isExporting || isPreviewLoading || isPreviewError}
+          size="lg"
           className="min-w-40 shadow-md font-semibold"
         >
           {isExporting ? (
-            "Generating..."
+            "Wird erstellt…"
           ) : (
             <>
               <Download className="mr-2 h-4 w-4" />
-              Apply & Download
+              Anwenden & Herunterladen
             </>
           )}
         </Button>

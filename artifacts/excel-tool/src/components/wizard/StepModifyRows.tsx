@@ -150,7 +150,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="min-w-[190px]">Standort</TableHead>
-                  <TableHead className="w-40">Zeile</TableHead>
+                  <TableHead className="w-32">Zeile</TableHead>
                   <TableHead className="w-14">+/−</TableHead>
                   <TableHead className="w-16">Hours Adj.</TableHead>
                   <TableHead className="w-16">EFTE Adj.</TableHead>

@@ -6,6 +6,11 @@ import { Plus, X, Calculator } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+interface RowLabel {
+  rowNumber: number;
+  label: string;
+}
+
 interface RowCurrentValue {
   rowNumber: number;
   hours: number | null;
@@ -41,7 +46,15 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
   );
   const [currentValues, setCurrentValues] = useState<ValuesMap>({});
   const [isFetchingValues, setIsFetchingValues] = useState(false);
+  const [rowLabels, setRowLabels] = useState<RowLabel[]>([]);
   const { mutate: updateSession, isPending } = useUpdateSession();
+
+  useEffect(() => {
+    fetch(`/api/sessions/${sessionId}/row-list`)
+      .then((r) => r.json())
+      .then((data: { rows: RowLabel[] }) => setRowLabels(data.rows ?? []))
+      .catch(() => {});
+  }, [sessionId]);
 
   const locations = Array.from(new Set(session.files.map((f) => f.locationName).filter(Boolean)));
 
@@ -195,14 +208,33 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
 
                       {/* Row number */}
                       <TableCell>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={row.rowNumber || ""}
-                          onChange={(e) => updateRow(index, "rowNumber", parseInt(e.target.value) || 0)}
-                          className="w-full font-mono text-sm font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          placeholder="#"
-                        />
+                        <Select
+                          value={row.rowNumber > 0 ? String(row.rowNumber) : ""}
+                          onValueChange={(val) => updateRow(index, "rowNumber", parseInt(val, 10))}
+                        >
+                          <SelectTrigger className="text-xs font-mono min-w-[150px]">
+                            <SelectValue placeholder="Select row…">
+                              {row.rowNumber > 0
+                                ? (() => {
+                                    const found = rowLabels.find((r) => r.rowNumber === row.rowNumber);
+                                    return found ? `${found.rowNumber}: ${found.label}` : `Row ${row.rowNumber}`;
+                                  })()
+                                : "Select row…"}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="max-h-72">
+                            {rowLabels.length === 0 ? (
+                              <SelectItem value="0" disabled>Loading…</SelectItem>
+                            ) : (
+                              rowLabels.map((rl) => (
+                                <SelectItem key={rl.rowNumber} value={String(rl.rowNumber)} className="text-xs font-mono">
+                                  <span className="text-muted-foreground mr-2 tabular-nums">{rl.rowNumber}</span>
+                                  {rl.label}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
 
                       {/* +/- */}

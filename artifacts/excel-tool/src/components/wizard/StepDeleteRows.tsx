@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Session, useUpdateSession, DeleteRowConfig } from "@workspace/api-client-react";
 import { Plus, X, Trash2 } from "lucide-react";
-import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface RowLabel {
+  rowNumber: number;
+  label: string;
+}
 
 interface StepDeleteRowsProps {
   session: Session;
@@ -19,7 +23,15 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
   const [rows, setRows] = useState<DeleteRowConfig[]>(
     session.deleteRows && session.deleteRows.length > 0 ? session.deleteRows : DEFAULT_ROWS
   );
+  const [rowLabels, setRowLabels] = useState<RowLabel[]>([]);
   const { mutate: updateSession, isPending } = useUpdateSession();
+
+  useEffect(() => {
+    fetch(`/api/sessions/${sessionId}/row-list`)
+      .then((r) => r.json())
+      .then((data: { rows: RowLabel[] }) => setRowLabels(data.rows ?? []))
+      .catch(() => {});
+  }, [sessionId]);
 
   const addRow = () => {
     setRows([...rows, { rowNumber: 0 }]);
@@ -29,10 +41,9 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
     setRows(rows.filter((_, i) => i !== index));
   };
 
-  const updateRow = (index: number, val: string) => {
-    const num = parseInt(val, 10);
+  const updateRow = (index: number, rowNumber: number) => {
     const newRows = [...rows];
-    newRows[index].rowNumber = isNaN(num) ? 0 : num;
+    newRows[index] = { rowNumber };
     setRows(newRows);
   };
 
@@ -49,12 +60,17 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
     );
   };
 
+  const rowLabel = (rowNumber: number) => {
+    const found = rowLabels.find((r) => r.rowNumber === rowNumber);
+    return found ? `Row ${found.rowNumber}: ${found.label}` : rowNumber > 0 ? `Row ${rowNumber}` : "";
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold tracking-tight">Delete Rows</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Specify row numbers to clear. Hours and EFTE cells will be set to 0 for the selected month ({session.selectedMonth}) across all sheets.
+          Specify rows to clear. Hours and EFTE cells will be set to 0 for {session.selectedMonth} across all sheets.
         </p>
       </div>
 
@@ -79,27 +95,33 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
               {rows.map((row, index) => (
                 <div key={index} className="flex items-center space-x-2 group">
-                  <div className="relative flex-1">
-                    <Label htmlFor={`row-${index}`} className="sr-only">Row number</Label>
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <span className="text-muted-foreground text-sm font-medium">Row</span>
-                    </div>
-                    <Input
-                      id={`row-${index}`}
-                      type="number"
-                      min={1}
-                      value={row.rowNumber || ""}
-                      onChange={(e) => updateRow(index, e.target.value)}
-                      className="pl-14 font-mono"
-                      placeholder="e.g. 42"
-                    />
-                  </div>
+                  <Select
+                    value={row.rowNumber > 0 ? String(row.rowNumber) : ""}
+                    onValueChange={(val) => updateRow(index, parseInt(val, 10))}
+                  >
+                    <SelectTrigger className="flex-1 text-sm font-mono">
+                      <SelectValue placeholder="Select row…">
+                        {row.rowNumber > 0 ? rowLabel(row.rowNumber) : "Select row…"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {rowLabels.length === 0 ? (
+                        <SelectItem value="0" disabled>Loading…</SelectItem>
+                      ) : (
+                        rowLabels.map((rl) => (
+                          <SelectItem key={rl.rowNumber} value={String(rl.rowNumber)} className="text-xs font-mono">
+                            <span className="text-muted-foreground mr-2 tabular-nums">{rl.rowNumber}</span>
+                            {rl.label}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => removeRow(index)}
                     className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    title="Remove row"
                   >
                     <X className="w-4 h-4" />
                   </Button>

@@ -412,7 +412,7 @@ router.post("/sessions/:sessionId/send-email", async (req, res): Promise<void> =
     subject: `Master Cluster Austria EFTE – ${session.selectedMonth}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px;">
-        <h2 style="color: #1e3a5f;">Excel Merge &amp; Edit Tool</h2>
+        <h2 style="color: #1e3a5f;">EFTE Merge &amp; Edit Tool</h2>
         <p>Im Anhang finden Sie:</p>
         <ul>
           <li><strong>${excelFilename}</strong> – die zusammengeführte Master-Excel-Datei</li>

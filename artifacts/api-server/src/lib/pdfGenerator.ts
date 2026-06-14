@@ -46,7 +46,7 @@ export function generateReportPdf(
 
     // ── Header ─────────────────────────────────────────────────────────────
     doc.fontSize(18).fillColor(COL_DARK).font("Helvetica-Bold")
-      .text("Excel Merge & Edit Tool", { align: "left" });
+      .text("EFTE Merge & Edit Tool", { align: "left" });
 
     doc.fontSize(11).fillColor(COL_GREY).font("Helvetica")
       .text("Anpassungsbericht", { align: "left" });

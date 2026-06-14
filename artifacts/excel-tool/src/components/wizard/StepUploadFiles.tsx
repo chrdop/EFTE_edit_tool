@@ -21,8 +21,8 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
 
   const uploadFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
-    if (session.files.length + files.length > 10) {
-      setError("Maximum 10 Dateien erlaubt.");
+    if (session.files.length + files.length > 15) {
+      setError("Maximum 15 Dateien erlaubt.");
       return;
     }
 
@@ -101,7 +101,7 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
       <div>
         <h2 className="text-xl font-bold tracking-tight">Excel-Dateien hochladen</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Bis zu 10 Standort-Reports (.xlsx, .xls) per Drag & Drop oder Dateiauswahl.
+          Bis zu 15 Standort-Reports (.xlsx, .xls) per Drag & Drop oder Dateiauswahl.
         </p>
       </div>
 

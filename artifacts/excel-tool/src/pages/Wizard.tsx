@@ -49,7 +49,7 @@ export function Wizard() {
             <div className="bg-primary h-8 w-8 rounded flex items-center justify-center shadow-sm">
               <span className="text-primary-foreground font-bold font-mono text-sm">XT</span>
             </div>
-            <h1 className="font-bold text-lg tracking-tight text-foreground">Excel Merge & Edit Tool</h1>
+            <h1 className="font-bold text-lg tracking-tight text-foreground">EFTE Merge & Edit Tool</h1>
           </div>
           <Button variant="ghost" size="sm" onClick={resetSession} className="text-muted-foreground hover:text-foreground">
             <RefreshCcw className="mr-2 h-4 w-4" />

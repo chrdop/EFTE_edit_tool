@@ -149,6 +149,7 @@ router.post(
 
     const { v4: uuidv4 } = await import("uuid");
     const newFiles = [...session.files];
+    const failedNames: string[] = [];
 
     for (const file of uploadedFiles) {
       try {
@@ -162,8 +163,17 @@ router.post(
         });
       } catch (err) {
         req.log.error({ err, filename: file.originalname }, "Failed to analyze Excel file");
+        failedNames.push(file.originalname);
         try { fs.unlinkSync(file.path); } catch {}
       }
+    }
+
+    // If every file failed to parse, return a clear error
+    if (newFiles.length === session.files.length && failedNames.length > 0) {
+      res.status(400).json({
+        error: `Die folgenden Dateien konnten nicht gelesen werden: ${failedNames.join(", ")}. Bitte nur .xlsx oder .xls Dateien hochladen.`,
+      });
+      return;
     }
 
     const updated = updateSession(params.data.sessionId, {

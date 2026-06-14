@@ -1,15 +1,9 @@
-import ExcelJS from "exceljs";
+import * as XLSX from "xlsx";
 import type { UploadedFile, DeleteRowConfig, ModifyRowConfig } from "./sessionStore.js";
-import path from "path";
-import fs from "fs";
 
-const MONTHS_ORDER = [
-  "Januar", "Februar", "März", "April", "Mai", "Juni",
-  "Juli", "August", "September", "Oktober", "November", "Dezember",
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+const CANONICAL_MONTHS = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
 ];
 
 const MONTH_ALIASES: Record<string, string> = {
@@ -19,117 +13,108 @@ const MONTH_ALIASES: Record<string, string> = {
   "Januar": "January", "Februar": "February", "März": "March",
   "Mai": "May", "Juni": "June", "Juli": "July",
   "Oktober": "October",
+  "Jänner": "January",
 };
 
-function normalizeMonth(m: string): string {
-  return MONTH_ALIASES[m] || m;
+function normalizeMonth(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (CANONICAL_MONTHS.includes(trimmed)) return trimmed;
+  const aliased = MONTH_ALIASES[trimmed];
+  if (aliased) return aliased;
+  return null;
 }
 
-export interface MonthColumnInfo {
-  month: string;
-  hoursCol: number;
-  efteCol: number;
+// Row/col in SheetJS are 0-based; user-facing row numbers are 1-based.
+function cellAddr(row1: number, col0: number): string {
+  return XLSX.utils.encode_cell({ r: row1 - 1, c: col0 });
+}
+
+function getCellValue(ws: XLSX.WorkSheet, row1: number, col0: number): number | null {
+  const addr = cellAddr(row1, col0);
+  const cell = ws[addr];
+  if (!cell) return null;
+  const v = cell.v;
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n = parseFloat(v.replace(",", "."));
+    return isNaN(n) ? null : n;
+  }
+  return null;
+}
+
+interface MonthCols {
+  hoursCol0: number; // 0-based column index
+  efteCol0: number;
+}
+
+function findMonthCols(ws: XLSX.WorkSheet, month: string): MonthCols | null {
+  const range = XLSX.utils.decode_range(ws["!ref"] ?? "A1:A1");
+
+  // Scan rows 7–10 (1-based) for the month header
+  for (let row1 = 7; row1 <= 10; row1++) {
+    let monthStartCol0 = -1;
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: row1 - 1, c })];
+      const raw = String(cell?.v ?? "").trim();
+      if (normalizeMonth(raw) === month && monthStartCol0 === -1) {
+        monthStartCol0 = c;
+      }
+    }
+    if (monthStartCol0 === -1) continue;
+
+    // Look at the sub-header row (row1 + 1) for "Hours" / "EFTE" labels
+    let hoursCol0 = monthStartCol0;
+    let efteCol0 = monthStartCol0 + 1;
+
+    const subRow1 = row1 + 1;
+    for (let c = monthStartCol0; c <= monthStartCol0 + 3; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: subRow1 - 1, c })];
+      const label = String(cell?.v ?? "").toLowerCase();
+      if (label.includes("hour") || label.includes("stund")) hoursCol0 = c;
+      if (label.includes("efte") || label.includes("fte")) efteCol0 = c;
+    }
+
+    return { hoursCol0, efteCol0 };
+  }
+  return null;
 }
 
 export async function analyzeExcelFile(filePath: string): Promise<{
   sheetNames: string[];
   detectedMonths: string[];
 }> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(filePath);
+  const workbook = XLSX.readFile(filePath, {
+    cellStyles: true,
+    cellFormula: true,
+    cellDates: true,
+    sheetStubs: true,
+  });
 
-  const sheetNames: string[] = [];
+  const sheetNames = workbook.SheetNames;
   const monthSet = new Set<string>();
 
-  workbook.eachSheet((sheet) => {
-    sheetNames.push(sheet.name);
+  for (const sheetName of sheetNames) {
+    const ws = workbook.Sheets[sheetName];
+    if (!ws || !ws["!ref"]) continue;
 
-    // Scan rows 7 and 8 for month headers
-    for (const rowNum of [7, 8, 9]) {
-      const row = sheet.getRow(rowNum);
-      row.eachCell((cell) => {
-        const val = String(cell.value ?? "").trim();
-        const normalized = normalizeMonth(val);
-        if (
-          MONTHS_ORDER.some((m) => normalizeMonth(m) === normalized) &&
-          normalized.length > 2
-        ) {
-          monthSet.add(normalized);
-        }
-      });
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    for (let row1 = 7; row1 <= 10; row1++) {
+      if (row1 - 1 > range.e.r) break;
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = ws[XLSX.utils.encode_cell({ r: row1 - 1, c })];
+        const raw = String(cell?.v ?? "").trim();
+        const m = normalizeMonth(raw);
+        if (m) monthSet.add(m);
+      }
     }
-  });
+  }
 
-  const detectedMonths = Array.from(monthSet).sort((a, b) => {
-    const CANONICAL = [
-      "January","February","March","April","May","June",
-      "July","August","September","October","November","December",
-    ];
-    return CANONICAL.indexOf(a) - CANONICAL.indexOf(b);
-  });
+  const detectedMonths = Array.from(monthSet).sort(
+    (a, b) => CANONICAL_MONTHS.indexOf(a) - CANONICAL_MONTHS.indexOf(b),
+  );
 
   return { sheetNames, detectedMonths };
-}
-
-function findMonthColumns(sheet: ExcelJS.Worksheet, month: string): MonthColumnInfo | null {
-  let headerRow: ExcelJS.Row | null = null;
-  let headerRowNum = 0;
-
-  // Look in rows 7-10 for headers
-  for (const rowNum of [8, 7, 9, 10]) {
-    const row = sheet.getRow(rowNum);
-    let hasMonthHeader = false;
-    row.eachCell((cell) => {
-      const val = String(cell.value ?? "").trim();
-      const normalized = normalizeMonth(val);
-      if (normalized === month) {
-        hasMonthHeader = true;
-      }
-    });
-    if (hasMonthHeader) {
-      headerRow = row;
-      headerRowNum = rowNum;
-      break;
-    }
-  }
-
-  if (!headerRow) return null;
-
-  let monthColStart = -1;
-  headerRow.eachCell((cell, colNumber) => {
-    const val = String(cell.value ?? "").trim();
-    if (normalizeMonth(val) === month && monthColStart === -1) {
-      monthColStart = colNumber;
-    }
-  });
-
-  if (monthColStart === -1) return null;
-
-  // Hours col = monthColStart, EFTE col = monthColStart + 1 (or find by subheader)
-  // Look for subheader row: Hours / EFTE
-  let hoursCol = monthColStart;
-  let efteCol = monthColStart + 1;
-
-  const subHeaderRow = sheet.getRow(headerRowNum + 1);
-  for (let c = monthColStart; c <= monthColStart + 2; c++) {
-    const val = String(subHeaderRow.getCell(c).value ?? "").toLowerCase();
-    if (val.includes("hour") || val.includes("stund")) hoursCol = c;
-    if (val.includes("efte") || val.includes("fte")) efteCol = c;
-  }
-
-  return { month, hoursCol, efteCol };
-}
-
-function getCellNumericValue(sheet: ExcelJS.Worksheet, rowNum: number, colNum: number): number | null {
-  const cell = sheet.getRow(rowNum).getCell(colNum);
-  const v = cell.value;
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const parsed = parseFloat(v.replace(",", "."));
-    return isNaN(parsed) ? null : parsed;
-  }
-  return null;
 }
 
 export interface PreviewDeleteRow {
@@ -148,6 +133,13 @@ export interface PreviewModifyRow {
   newEfte: number | null;
 }
 
+function calcNew(current: number | null, adjustment: number, plusMinus: "+" | "-", divisor: number): number | null {
+  if (current === null) return null;
+  const adjusted = plusMinus === "-" ? current - adjustment : current + adjustment;
+  const result = divisor !== 0 ? adjusted / divisor : adjusted;
+  return Math.round(result * 100) / 100;
+}
+
 export async function previewChanges(
   files: UploadedFile[],
   month: string,
@@ -158,57 +150,36 @@ export async function previewChanges(
   const modifyPreview: PreviewModifyRow[] = [];
 
   for (const file of files) {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(file.filePath);
+    const workbook = XLSX.readFile(file.filePath, { cellStyles: true, cellFormula: true });
 
-    workbook.eachSheet((sheet) => {
-      const cols = findMonthColumns(sheet, month);
-      if (!cols) return;
+    for (const sheetName of workbook.SheetNames) {
+      const ws = workbook.Sheets[sheetName];
+      if (!ws) continue;
+      const cols = findMonthCols(ws, month);
+      if (!cols) continue;
 
       for (const dr of deleteRows) {
-        const currentHours = getCellNumericValue(sheet, dr.rowNumber, cols.hoursCol);
-        const currentEfte = getCellNumericValue(sheet, dr.rowNumber, cols.efteCol);
         deletePreview.push({
           rowNumber: dr.rowNumber,
-          sheetName: sheet.name,
-          currentHours,
-          currentEfte,
+          sheetName,
+          currentHours: getCellValue(ws, dr.rowNumber, cols.hoursCol0),
+          currentEfte: getCellValue(ws, dr.rowNumber, cols.efteCol0),
         });
       }
 
       for (const mr of modifyRows) {
-        const currentHours = getCellNumericValue(sheet, mr.rowNumber, cols.hoursCol);
-        const currentEfte = getCellNumericValue(sheet, mr.rowNumber, cols.efteCol);
-
-        let newHours: number | null = null;
-        let newEfte: number | null = null;
-
-        if (currentHours !== null) {
-          const adjusted =
-            mr.plusMinus === "-"
-              ? currentHours - mr.hoursAdjustment
-              : currentHours + mr.hoursAdjustment;
-          newHours = mr.divisor !== 0 ? adjusted / mr.divisor : adjusted;
-        }
-
-        if (currentEfte !== null) {
-          const adjusted =
-            mr.plusMinus === "-"
-              ? currentEfte - mr.efteAdjustment
-              : currentEfte + mr.efteAdjustment;
-          newEfte = mr.divisor !== 0 ? adjusted / mr.divisor : adjusted;
-        }
-
+        const currentHours = getCellValue(ws, mr.rowNumber, cols.hoursCol0);
+        const currentEfte = getCellValue(ws, mr.rowNumber, cols.efteCol0);
         modifyPreview.push({
           rowNumber: mr.rowNumber,
-          sheetName: sheet.name,
+          sheetName,
           currentHours,
           currentEfte,
-          newHours,
-          newEfte,
+          newHours: calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor),
+          newEfte: calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor),
         });
       }
-    });
+    }
   }
 
   return { deletePreview, modifyPreview };
@@ -221,90 +192,71 @@ export async function buildMasterExcel(
   modifyRows: ModifyRowConfig[],
   outputPath: string,
 ): Promise<void> {
-  const masterWorkbook = new ExcelJS.Workbook();
+  const masterWorkbook = XLSX.utils.book_new();
+
+  const usedSheetNames = new Set<string>();
 
   for (const file of files) {
-    const sourceWorkbook = new ExcelJS.Workbook();
-    await sourceWorkbook.xlsx.readFile(file.filePath);
-
-    sourceWorkbook.eachSheet((sourceSheet) => {
-      // Add each source sheet to master workbook
-      const targetSheet = masterWorkbook.addWorksheet(sourceSheet.name, {
-        properties: sourceSheet.properties,
-        pageSetup: sourceSheet.pageSetup,
-      });
-
-      // Copy all rows and cells
-      sourceSheet.eachRow({ includeEmpty: true }, (row, rowNum) => {
-        const targetRow = targetSheet.getRow(rowNum);
-        targetRow.height = row.height;
-        targetRow.hidden = row.hidden;
-        targetRow.outlineLevel = row.outlineLevel;
-
-        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-          const targetCell = targetRow.getCell(colNum);
-          targetCell.value = cell.value;
-          if (cell.style) {
-            targetCell.style = { ...cell.style };
-          }
-        });
-        targetRow.commit();
-      });
-
-      // Copy column widths
-      sourceSheet.columns.forEach((col, idx) => {
-        if (col && col.width) {
-          targetSheet.getColumn(idx + 1).width = col.width;
-        }
-      });
-
-      // Copy merged cells
-      if (sourceSheet.hasMerges) {
-        const merges = (sourceSheet as unknown as { _merges?: Record<string, { top: number; left: number; bottom: number; right: number }> })._merges;
-        if (merges) {
-          Object.values(merges).forEach((merge) => {
-            try {
-              targetSheet.mergeCells(merge.top, merge.left, merge.bottom, merge.right);
-            } catch {}
-          });
-        }
-      }
-
-      // Now apply changes
-      const cols = findMonthColumns(targetSheet, month);
-      if (cols) {
-        // Apply deletes
-        for (const dr of deleteRows) {
-          targetSheet.getRow(dr.rowNumber).getCell(cols.hoursCol).value = null;
-          targetSheet.getRow(dr.rowNumber).getCell(cols.efteCol).value = null;
-        }
-
-        // Apply modifications
-        for (const mr of modifyRows) {
-          const currentHours = getCellNumericValue(targetSheet, mr.rowNumber, cols.hoursCol);
-          const currentEfte = getCellNumericValue(targetSheet, mr.rowNumber, cols.efteCol);
-
-          if (currentHours !== null) {
-            const adjusted =
-              mr.plusMinus === "-"
-                ? currentHours - mr.hoursAdjustment
-                : currentHours + mr.hoursAdjustment;
-            const newHours = mr.divisor !== 0 ? adjusted / mr.divisor : adjusted;
-            targetSheet.getRow(mr.rowNumber).getCell(cols.hoursCol).value = Math.round(newHours * 100) / 100;
-          }
-
-          if (currentEfte !== null) {
-            const adjusted =
-              mr.plusMinus === "-"
-                ? currentEfte - mr.efteAdjustment
-                : currentEfte + mr.efteAdjustment;
-            const newEfte = mr.divisor !== 0 ? adjusted / mr.divisor : adjusted;
-            targetSheet.getRow(mr.rowNumber).getCell(cols.efteCol).value = Math.round(newEfte * 100) / 100;
-          }
-        }
-      }
+    const sourceWorkbook = XLSX.readFile(file.filePath, {
+      cellStyles: true,
+      cellFormula: true,
+      cellDates: true,
+      sheetStubs: true,
     });
+
+    for (const sheetName of sourceWorkbook.SheetNames) {
+      const sourceWs = sourceWorkbook.Sheets[sheetName];
+      if (!sourceWs) continue;
+
+      // Deep-copy the worksheet
+      const targetWs: XLSX.WorkSheet = JSON.parse(JSON.stringify(sourceWs));
+
+      // Apply changes
+      const cols = findMonthCols(targetWs, month);
+      if (cols) {
+        // Delete rows: clear Hours and EFTE cells
+        for (const dr of deleteRows) {
+          const hoursAddr = cellAddr(dr.rowNumber, cols.hoursCol0);
+          const efteAddr = cellAddr(dr.rowNumber, cols.efteCol0);
+          if (targetWs[hoursAddr]) {
+            targetWs[hoursAddr] = { t: "n", v: 0, w: "0" };
+          }
+          if (targetWs[efteAddr]) {
+            targetWs[efteAddr] = { t: "n", v: 0, w: "0" };
+          }
+        }
+
+        // Modify rows: recalculate and write new values
+        for (const mr of modifyRows) {
+          const currentHours = getCellValue(targetWs, mr.rowNumber, cols.hoursCol0);
+          const currentEfte = getCellValue(targetWs, mr.rowNumber, cols.efteCol0);
+
+          const newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor);
+          const newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor);
+
+          if (newHours !== null) {
+            const addr = cellAddr(mr.rowNumber, cols.hoursCol0);
+            targetWs[addr] = { ...(targetWs[addr] ?? {}), t: "n", v: newHours, w: String(newHours) };
+          }
+          if (newEfte !== null) {
+            const addr = cellAddr(mr.rowNumber, cols.efteCol0);
+            targetWs[addr] = { ...(targetWs[addr] ?? {}), t: "n", v: newEfte, w: String(newEfte) };
+          }
+        }
+      }
+
+      // Ensure unique sheet name in master workbook
+      let uniqueName = sheetName.slice(0, 31);
+      let suffix = 2;
+      while (usedSheetNames.has(uniqueName)) {
+        const tag = `_${suffix++}`;
+        uniqueName = sheetName.slice(0, 31 - tag.length) + tag;
+      }
+      usedSheetNames.add(uniqueName);
+
+      XLSX.utils.book_append_sheet(masterWorkbook, targetWs, uniqueName);
+    }
   }
 
-  await masterWorkbook.xlsx.writeFile(outputPath);
+  XLSX.writeFile(masterWorkbook, outputPath, { bookType: "xlsx", cellStyles: true });
 }

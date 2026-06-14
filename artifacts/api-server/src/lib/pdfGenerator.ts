@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from "pdf-lib";
 import type { Session } from "../lib/sessionStore.js";
 
 interface PreviewDeleteRow {
@@ -23,135 +23,8 @@ interface PreviewData {
 }
 
 function fmt(val: number | null | undefined): string {
-  if (val === null || val === undefined) return "—";
+  if (val === null || val === undefined) return "\u2014";
   return val.toLocaleString("en-US", { maximumFractionDigits: 2 });
-}
-
-export function generateReportPdf(
-  session: Session,
-  preview: PreviewData,
-): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
-
-    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-
-    const COL_GREY = "#6b7280";
-    const COL_BLUE = "#2563eb";
-    const COL_DARK = "#111827";
-
-    // ── Header ─────────────────────────────────────────────────────────────
-    doc.fontSize(18).fillColor(COL_DARK).font("Helvetica-Bold")
-      .text("EFTE Merge & Edit Tool", { align: "left" });
-
-    doc.fontSize(11).fillColor(COL_GREY).font("Helvetica")
-      .text("Change Report", { align: "left" });
-
-    doc.moveDown(0.3);
-    doc.fontSize(10).fillColor(COL_DARK)
-      .text(
-        `Month: ${session.selectedMonth ?? "—"}   |   Locations: ${session.files.length}   |   Generated: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
-      );
-
-    doc.moveDown(0.5);
-    doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor("#e5e7eb").lineWidth(1).stroke();
-    doc.moveDown(0.5);
-
-    // ── Uploaded Locations ─────────────────────────────────────────────────
-    doc.fontSize(13).fillColor(COL_DARK).font("Helvetica-Bold")
-      .text("Processed Locations");
-    doc.moveDown(0.3);
-
-    doc.fontSize(9).fillColor(COL_GREY).font("Helvetica")
-      .text(`${session.files.length} location report(s) included in this export`);
-    doc.moveDown(0.3);
-
-    drawTableHeader(doc, ["#", "Location", "File"], [25, 220, 270]);
-    session.files.forEach((f, i) => {
-      drawTableRow(doc, [String(i + 1), f.locationName || "—", f.originalName], [25, 220, 270], i % 2 === 1);
-    });
-
-    doc.moveDown(1);
-
-    // ── Delete Rows Section ────────────────────────────────────────────────
-    doc.fontSize(13).fillColor(COL_DARK).font("Helvetica-Bold")
-      .text("Deleted Rows (Hours & EFTE → 0)");
-    doc.moveDown(0.3);
-
-    if (preview.deletePreview.length === 0) {
-      doc.fontSize(10).fillColor(COL_GREY).font("Helvetica")
-        .text("No rows configured for deletion.");
-    } else {
-      const grouped = groupByRow(preview.deletePreview);
-
-      doc.fontSize(9).fillColor(COL_GREY).font("Helvetica")
-        .text(`${grouped.length} row(s) cleared across ${preview.deletePreview.length} location(s)`);
-      doc.moveDown(0.3);
-
-      drawTableHeader(doc, ["Row", "Locations affected"], [60, 200]);
-      for (const g of grouped) {
-        drawTableRow(doc, [String(g.rowNumber), String(g.count)], [60, 200], false);
-      }
-    }
-
-    doc.moveDown(1);
-
-    // ── Modify Rows Section ────────────────────────────────────────────────
-    doc.fontSize(13).fillColor(COL_DARK).font("Helvetica-Bold")
-      .text("Adjusted Rows");
-    doc.moveDown(0.3);
-
-    if (preview.modifyPreview.length === 0) {
-      doc.fontSize(10).fillColor(COL_GREY).font("Helvetica")
-        .text("No row adjustments configured.");
-    } else {
-      doc.fontSize(9).fillColor(COL_GREY).font("Helvetica")
-        .text(`${preview.modifyPreview.length} adjustment(s) applied`);
-      doc.moveDown(0.3);
-
-      const cols = [40, 175, 65, 65, 65, 65];
-      const headers = ["Row", "Location", "Cur. Hours", "Cur. EFTE", "New Hours", "New EFTE"];
-
-      drawTableHeader(doc, headers, cols, true);
-
-      for (let i = 0; i < preview.modifyPreview.length; i++) {
-        const row = preview.modifyPreview[i];
-        const isChanged = row.newHours !== row.currentHours || row.newEfte !== row.currentEfte;
-        drawTableRow(
-          doc,
-          [
-            String(row.rowNumber),
-            row.locationName,
-            fmt(row.currentHours),
-            fmt(row.currentEfte),
-            fmt(row.newHours),
-            fmt(row.newEfte),
-          ],
-          cols,
-          i % 2 === 1,
-          isChanged ? [4, 5] : [],
-        );
-
-        if (doc.y > 750) {
-          doc.addPage();
-        }
-      }
-    }
-
-    // ── Footer ─────────────────────────────────────────────────────────────
-    doc.fontSize(8).fillColor(COL_GREY).font("Helvetica");
-    doc.text(
-      `Page 1  ·  Generated ${new Date().toLocaleString("en-US")}`,
-      40,
-      doc.page.height - 40,
-      { align: "center" },
-    );
-
-    doc.end();
-  });
 }
 
 function groupByRow(rows: PreviewDeleteRow[]): Array<{ rowNumber: number; count: number }> {
@@ -164,51 +37,211 @@ function groupByRow(rows: PreviewDeleteRow[]): Array<{ rowNumber: number; count:
     .map(([rowNumber, count]) => ({ rowNumber, count }));
 }
 
-function drawTableHeader(doc: PDFKit.PDFDocument, headers: string[], colWidths: number[], smallFont = false): void {
-  const startX = 40;
-  let x = startX;
-  const rowH = 16;
-  const y = doc.y;
-
-  doc.rect(startX, y, colWidths.reduce((a, b) => a + b, 0), rowH).fill("#f3f4f6");
-
-  doc.font("Helvetica-Bold").fontSize(smallFont ? 8 : 9).fillColor("#374151");
-  for (let i = 0; i < headers.length; i++) {
-    doc.text(headers[i], x + 3, y + 4, { width: colWidths[i] - 6, ellipsis: true });
-    x += colWidths[i];
+function truncate(text: string, font: PDFFont, size: number, maxWidth: number): string {
+  if (font.widthOfTextAtSize(text, size) <= maxWidth) return text;
+  let t = text;
+  while (t.length > 0 && font.widthOfTextAtSize(t + "\u2026", size) > maxWidth) {
+    t = t.slice(0, -1);
   }
-  doc.moveDown(0);
-  doc.y = y + rowH;
+  return t + "\u2026";
 }
 
-function drawTableRow(
-  doc: PDFKit.PDFDocument,
-  values: string[],
-  colWidths: number[],
-  shaded: boolean,
-  highlightCols: number[] = [],
-): void {
-  const startX = 40;
-  let x = startX;
-  const rowH = 14;
-  const y = doc.y;
-  const totalW = colWidths.reduce((a, b) => a + b, 0);
+export async function generateReportPdf(
+  session: Session,
+  preview: PreviewData,
+): Promise<Buffer> {
+  const PAGE_W = 595;
+  const PAGE_H = 842;
+  const MARGIN = 40;
+  const CONTENT_W = PAGE_W - MARGIN * 2;
 
-  if (shaded) {
-    doc.rect(startX, y, totalW, rowH).fill("#f9fafb");
+  const cDark   = rgb(0.067, 0.094, 0.153);
+  const cGrey   = rgb(0.420, 0.447, 0.502);
+  const cBlue   = rgb(0.145, 0.388, 0.922);
+  const cHdrBg  = rgb(0.953, 0.957, 0.965);
+  const cAltBg  = rgb(0.976, 0.980, 0.984);
+  const cLine   = rgb(0.898, 0.906, 0.918);
+  const cHdrTxt = rgb(0.216, 0.255, 0.318);
+
+  const pdfDoc = await PDFDocument.create();
+  const fontR = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  let page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+  let cy = PAGE_H - MARGIN;
+
+  function addPage() {
+    page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+    cy = PAGE_H - MARGIN;
   }
 
-  doc.font("Helvetica").fontSize(8).fillColor("#111827");
-  for (let i = 0; i < values.length; i++) {
-    if (highlightCols.includes(i)) {
-      doc.fillColor("#2563eb").font("Helvetica-Bold");
-    } else {
-      doc.fillColor("#111827").font("Helvetica");
+  function need(h: number) {
+    if (cy - h < MARGIN + 30) addPage();
+  }
+
+  function text(
+    str: string,
+    x: number,
+    size: number,
+    font: PDFFont,
+    color = cDark,
+    maxW?: number,
+  ) {
+    const s = maxW !== undefined ? truncate(str, font, size, maxW) : str;
+    page.drawText(s, { x, y: cy - size, font, size, color });
+  }
+
+  function hline(color = cLine) {
+    page.drawLine({
+      start: { x: MARGIN, y: cy },
+      end: { x: PAGE_W - MARGIN, y: cy },
+      thickness: 0.5,
+      color,
+    });
+  }
+
+  function fillRect(x: number, w: number, h: number, color: ReturnType<typeof rgb>) {
+    page.drawRectangle({ x, y: cy - h, width: w, height: h, color });
+  }
+
+  function tableHeader(headers: string[], cols: number[], smallFont = false) {
+    const rowH = 16;
+    need(rowH);
+    const totalW = cols.reduce((a, b) => a + b, 0);
+    fillRect(MARGIN, totalW, rowH, cHdrBg);
+    let x = MARGIN;
+    for (let i = 0; i < headers.length; i++) {
+      text(headers[i], x + 3, smallFont ? 8 : 9, fontB, cHdrTxt, cols[i] - 6);
+      x += cols[i];
     }
-    doc.text(values[i], x + 3, y + 3, { width: colWidths[i] - 6, ellipsis: true });
-    x += colWidths[i];
+    cy -= rowH;
   }
 
-  doc.moveTo(startX, y + rowH).lineTo(startX + totalW, y + rowH).strokeColor("#e5e7eb").lineWidth(0.5).stroke();
-  doc.y = y + rowH;
+  function tableRow(
+    values: string[],
+    cols: number[],
+    even: boolean,
+    highlightCols: number[] = [],
+  ) {
+    const rowH = 14;
+    need(rowH);
+    const totalW = cols.reduce((a, b) => a + b, 0);
+    if (even) fillRect(MARGIN, totalW, rowH, cAltBg);
+    let x = MARGIN;
+    for (let i = 0; i < values.length; i++) {
+      const hi = highlightCols.includes(i);
+      text(values[i], x + 3, 8, hi ? fontB : fontR, hi ? cBlue : cDark, cols[i] - 6);
+      x += cols[i];
+    }
+    page.drawLine({
+      start: { x: MARGIN, y: cy - rowH },
+      end: { x: MARGIN + totalW, y: cy - rowH },
+      thickness: 0.5,
+      color: cLine,
+    });
+    cy -= rowH;
+  }
+
+  // ── Header ────────────────────────────────────────────────────────────────
+  text("EFTE Merge & Edit Tool", MARGIN, 18, fontB, cDark);
+  cy -= 22;
+  text("Change Report", MARGIN, 11, fontR, cGrey);
+  cy -= 15;
+
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric",
+  });
+  text(
+    `Month: ${session.selectedMonth ?? "\u2014"}   |   Locations: ${session.files.length}   |   Generated: ${dateStr}`,
+    MARGIN, 10, fontR, cDark,
+  );
+  cy -= 14;
+  hline();
+  cy -= 14;
+
+  // ── Processed Locations ───────────────────────────────────────────────────
+  text("Processed Locations", MARGIN, 13, fontB, cDark);
+  cy -= 17;
+  text(`${session.files.length} location report(s) included in this export`, MARGIN, 9, fontR, cGrey);
+  cy -= 13;
+
+  const locCols = [25, 215, 275];
+  tableHeader(["#", "Location", "File"], locCols);
+  for (let i = 0; i < session.files.length; i++) {
+    const f = session.files[i];
+    tableRow(
+      [String(i + 1), f.locationName || "\u2014", f.originalName],
+      locCols,
+      i % 2 === 1,
+    );
+  }
+  cy -= 18;
+
+  // ── Delete Rows ───────────────────────────────────────────────────────────
+  need(40);
+  text("Deleted Rows (Hours & EFTE \u2192 0)", MARGIN, 13, fontB, cDark);
+  cy -= 17;
+
+  if (preview.deletePreview.length === 0) {
+    text("No rows configured for deletion.", MARGIN, 10, fontR, cGrey);
+    cy -= 15;
+  } else {
+    const grouped = groupByRow(preview.deletePreview);
+    text(
+      `${grouped.length} row(s) cleared across ${preview.deletePreview.length} location(s)`,
+      MARGIN, 9, fontR, cGrey,
+    );
+    cy -= 13;
+    const delCols = [60, 200];
+    tableHeader(["Row", "Locations affected"], delCols);
+    for (let i = 0; i < grouped.length; i++) {
+      tableRow(
+        [String(grouped[i].rowNumber), String(grouped[i].count)],
+        delCols,
+        i % 2 === 1,
+      );
+    }
+  }
+  cy -= 18;
+
+  // ── Adjusted Rows ─────────────────────────────────────────────────────────
+  need(40);
+  text("Adjusted Rows", MARGIN, 13, fontB, cDark);
+  cy -= 17;
+
+  if (preview.modifyPreview.length === 0) {
+    text("No row adjustments configured.", MARGIN, 10, fontR, cGrey);
+    cy -= 15;
+  } else {
+    text(`${preview.modifyPreview.length} adjustment(s) applied`, MARGIN, 9, fontR, cGrey);
+    cy -= 13;
+
+    const modCols = [40, 175, 65, 65, 65, 65];
+    tableHeader(
+      ["Row", "Location", "Cur. Hours", "Cur. EFTE", "New Hours", "New EFTE"],
+      modCols,
+      true,
+    );
+    for (let i = 0; i < preview.modifyPreview.length; i++) {
+      const row = preview.modifyPreview[i];
+      const isChanged =
+        row.newHours !== row.currentHours || row.newEfte !== row.currentEfte;
+      tableRow(
+        [
+          String(row.rowNumber),
+          row.locationName,
+          fmt(row.currentHours),
+          fmt(row.currentEfte),
+          fmt(row.newHours),
+          fmt(row.newEfte),
+        ],
+        modCols,
+        i % 2 === 1,
+        isChanged ? [4, 5] : [],
+      );
+    }
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  return Buffer.from(pdfBytes);
 }

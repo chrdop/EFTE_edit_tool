@@ -411,11 +411,15 @@ components:
 
     ExportResult:
       type: object
-      required: [downloadUrl, filename]
+      required: [downloadUrl, filename, pdfUrl, pdfFilename]
       properties:
         downloadUrl:
           type: string
         filename:
+          type: string
+        pdfUrl:
+          type: string
+        pdfFilename:
           type: string
 
     EmailRequest:

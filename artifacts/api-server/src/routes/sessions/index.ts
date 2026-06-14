@@ -288,9 +288,9 @@ router.post("/sessions/:sessionId/export", async (req, res): Promise<void> => {
     return;
   }
 
-  const { getUploadsDir } = await import("../../lib/sessionStore.js");
+  const uploadsDir = getUploadsDir();
   const outputFilename = `Master_Cluster_Austria_EFTE_${session.selectedMonth}.xlsx`;
-  const outputPath = path.join(getUploadsDir(), `${params.data.sessionId}-master.xlsx`);
+  const outputPath = path.join(uploadsDir, `${params.data.sessionId}-master.xlsx`);
 
   await buildMasterExcel(
     session.files,
@@ -300,13 +300,53 @@ router.post("/sessions/:sessionId/export", async (req, res): Promise<void> => {
     outputPath,
   );
 
+  // Generate PDF change report
+  const preview = await previewChanges(
+    session.files,
+    session.selectedMonth,
+    session.deleteRows,
+    session.modifyRows,
+  );
+  const pdfBuffer = await generateReportPdf(session, preview);
+  const pdfFilename = `Change_Report_${session.selectedMonth}.pdf`;
+  const pdfPath = path.join(uploadsDir, `${params.data.sessionId}-report.pdf`);
+  fs.writeFileSync(pdfPath, pdfBuffer);
+
   updateSession(params.data.sessionId, {
     status: "exported",
     exportedFilePath: outputPath,
+    exportedPdfPath: pdfPath,
   });
 
   const downloadUrl = `/api/sessions/${params.data.sessionId}/download`;
-  res.json({ downloadUrl, filename: outputFilename });
+  const pdfUrl = `/api/sessions/${params.data.sessionId}/download-pdf`;
+  res.json({ downloadUrl, filename: outputFilename, pdfUrl, pdfFilename });
+});
+
+// GET /sessions/:sessionId/download-pdf
+router.get("/sessions/:sessionId/download-pdf", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId;
+  const params = DownloadSessionParams.safeParse({ sessionId: raw });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const session = getSession(params.data.sessionId);
+  if (!session || !session.exportedPdfPath) {
+    res.status(404).json({ error: "PDF report not found. Please run export first." });
+    return;
+  }
+
+  if (!fs.existsSync(session.exportedPdfPath)) {
+    res.status(404).json({ error: "PDF file not found on disk" });
+    return;
+  }
+
+  const pdfFilename = `Change_Report_${session.selectedMonth ?? "export"}.pdf`;
+  res.setHeader("Content-Disposition", `attachment; filename="${pdfFilename}"`);
+  res.setHeader("Content-Type", "application/pdf");
+  res.sendFile(session.exportedPdfPath);
 });
 
 // GET /sessions/:sessionId/download

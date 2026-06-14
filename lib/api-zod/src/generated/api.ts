@@ -189,7 +189,9 @@ export const ExportSessionParams = zod.object({
 
 export const ExportSessionResponse = zod.object({
   "downloadUrl": zod.string(),
-  "filename": zod.string()
+  "filename": zod.string(),
+  "pdfUrl": zod.string(),
+  "pdfFilename": zod.string()
 })
 
 

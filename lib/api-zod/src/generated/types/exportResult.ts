@@ -8,4 +8,6 @@
 export interface ExportResult {
   downloadUrl: string;
   filename: string;
+  pdfUrl: string;
+  pdfFilename: string;
 }

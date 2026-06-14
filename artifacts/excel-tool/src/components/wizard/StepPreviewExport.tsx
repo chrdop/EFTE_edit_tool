@@ -26,7 +26,17 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
       { sessionId },
       {
         onSuccess: (data) => {
+          // Trigger Excel download
           window.location.href = data.downloadUrl;
+          // Trigger PDF report download with a short delay so both go through
+          setTimeout(() => {
+            const a = document.createElement("a");
+            a.href = data.pdfUrl;
+            a.download = data.pdfFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }, 800);
         },
       },
     );

@@ -121,6 +121,8 @@ export interface ReadValuesResult {
 export interface ExportResult {
   downloadUrl: string;
   filename: string;
+  pdfUrl: string;
+  pdfFilename: string;
 }
 
 export interface EmailRequest {

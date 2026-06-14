@@ -34,6 +34,7 @@ export interface Session {
   modifyRows: ModifyRowConfig[];
   status: SessionStatus;
   exportedFilePath?: string;
+  exportedPdfPath?: string;
 }
 
 const sessions = new Map<string, Session>();

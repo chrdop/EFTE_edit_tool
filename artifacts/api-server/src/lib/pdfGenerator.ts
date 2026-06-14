@@ -24,7 +24,7 @@ interface PreviewData {
 
 function fmt(val: number | null | undefined): string {
   if (val === null || val === undefined) return "—";
-  return val.toLocaleString("de-AT", { maximumFractionDigits: 2 });
+  return val.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
 export function generateReportPdf(
@@ -41,7 +41,6 @@ export function generateReportPdf(
 
     const COL_GREY = "#6b7280";
     const COL_BLUE = "#2563eb";
-    const COL_RED = "#dc2626";
     const COL_DARK = "#111827";
 
     // ── Header ─────────────────────────────────────────────────────────────
@@ -49,34 +48,50 @@ export function generateReportPdf(
       .text("EFTE Merge & Edit Tool", { align: "left" });
 
     doc.fontSize(11).fillColor(COL_GREY).font("Helvetica")
-      .text("Anpassungsbericht", { align: "left" });
+      .text("Change Report", { align: "left" });
 
     doc.moveDown(0.3);
     doc.fontSize(10).fillColor(COL_DARK)
-      .text(`Monat: ${session.selectedMonth ?? "—"}   |   Standorte: ${session.files.length}   |   Erstellt: ${new Date().toLocaleDateString("de-AT")}`);
+      .text(
+        `Month: ${session.selectedMonth ?? "—"}   |   Locations: ${session.files.length}   |   Generated: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
+      );
 
     doc.moveDown(0.5);
     doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor("#e5e7eb").lineWidth(1).stroke();
     doc.moveDown(0.5);
 
+    // ── Uploaded Locations ─────────────────────────────────────────────────
+    doc.fontSize(13).fillColor(COL_DARK).font("Helvetica-Bold")
+      .text("Processed Locations");
+    doc.moveDown(0.3);
+
+    doc.fontSize(9).fillColor(COL_GREY).font("Helvetica")
+      .text(`${session.files.length} location report(s) included in this export`);
+    doc.moveDown(0.3);
+
+    drawTableHeader(doc, ["#", "Location", "File"], [25, 220, 270]);
+    session.files.forEach((f, i) => {
+      drawTableRow(doc, [String(i + 1), f.locationName || "—", f.originalName], [25, 220, 270], i % 2 === 1);
+    });
+
+    doc.moveDown(1);
+
     // ── Delete Rows Section ────────────────────────────────────────────────
     doc.fontSize(13).fillColor(COL_DARK).font("Helvetica-Bold")
-      .text("Zeilen löschen (Hours & EFTE → 0)");
+      .text("Deleted Rows (Hours & EFTE → 0)");
     doc.moveDown(0.3);
 
     if (preview.deletePreview.length === 0) {
       doc.fontSize(10).fillColor(COL_GREY).font("Helvetica")
-        .text("Keine Zeilen zum Löschen konfiguriert.");
+        .text("No rows configured for deletion.");
     } else {
       const grouped = groupByRow(preview.deletePreview);
 
       doc.fontSize(9).fillColor(COL_GREY).font("Helvetica")
-        .text(`${grouped.length} Zeile(n) betroffen in ${preview.deletePreview.length} Standort(en)`);
+        .text(`${grouped.length} row(s) cleared across ${preview.deletePreview.length} location(s)`);
       doc.moveDown(0.3);
 
-      // Table header
-      drawTableHeader(doc, ["Zeile", "Anzahl Standorte"], [60, 200]);
-
+      drawTableHeader(doc, ["Row", "Locations affected"], [60, 200]);
       for (const g of grouped) {
         drawTableRow(doc, [String(g.rowNumber), String(g.count)], [60, 200], false);
       }
@@ -86,20 +101,19 @@ export function generateReportPdf(
 
     // ── Modify Rows Section ────────────────────────────────────────────────
     doc.fontSize(13).fillColor(COL_DARK).font("Helvetica-Bold")
-      .text("Zeilen anpassen");
+      .text("Adjusted Rows");
     doc.moveDown(0.3);
 
     if (preview.modifyPreview.length === 0) {
       doc.fontSize(10).fillColor(COL_GREY).font("Helvetica")
-        .text("Keine Zeilenanpassungen konfiguriert.");
+        .text("No row adjustments configured.");
     } else {
       doc.fontSize(9).fillColor(COL_GREY).font("Helvetica")
-        .text(`${preview.modifyPreview.length} Anpassung(en) konfiguriert`);
+        .text(`${preview.modifyPreview.length} adjustment(s) applied`);
       doc.moveDown(0.3);
 
-      // Column widths
-      const cols = [45, 170, 65, 65, 65, 65];
-      const headers = ["Zeile", "Standort", "Ist Hours", "Ist EFTE", "Hours neu", "EFTE neu"];
+      const cols = [40, 175, 65, 65, 65, 65];
+      const headers = ["Row", "Location", "Cur. Hours", "Cur. EFTE", "New Hours", "New EFTE"];
 
       drawTableHeader(doc, headers, cols, true);
 
@@ -129,9 +143,8 @@ export function generateReportPdf(
 
     // ── Footer ─────────────────────────────────────────────────────────────
     doc.fontSize(8).fillColor(COL_GREY).font("Helvetica");
-    const pageCount = (doc as any)._pageCount ?? 1;
     doc.text(
-      `Seite 1 von ${pageCount}  ·  Generiert am ${new Date().toLocaleString("de-AT")}`,
+      `Page 1  ·  Generated ${new Date().toLocaleString("en-US")}`,
       40,
       doc.page.height - 40,
       { align: "center" },

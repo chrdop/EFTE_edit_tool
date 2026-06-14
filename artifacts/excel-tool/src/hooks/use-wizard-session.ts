@@ -1,15 +1,30 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCreateSession, useGetSession, getGetSessionQueryKey } from "@workspace/api-client-react";
 
 export function useWizardSession() {
   const [sessionId, setSessionId] = useState<string | null>(() => {
     return localStorage.getItem("wizard_session_id") || null;
   });
-
   const queryClient = useQueryClient();
+  const isRecovering = useRef(false);
 
   const { mutate: createSession, isPending: isCreating } = useCreateSession();
+
+  const createNew = useCallback(() => {
+    if (isRecovering.current) return;
+    isRecovering.current = true;
+    createSession(undefined, {
+      onSuccess: (data) => {
+        setSessionId(data.id);
+        localStorage.setItem("wizard_session_id", data.id);
+        isRecovering.current = false;
+      },
+      onError: () => {
+        isRecovering.current = false;
+      },
+    });
+  }, [createSession]);
 
   const { data: session, isLoading: isSessionLoading, isError } = useGetSession(
     sessionId!,
@@ -17,35 +32,39 @@ export function useWizardSession() {
       query: {
         enabled: !!sessionId,
         queryKey: getGetSessionQueryKey(sessionId!),
-        retry: 1
-      }
-    }
+        retry: false,
+        staleTime: 0,
+        gcTime: 30_000,
+      },
+    },
   );
 
-  // If no session, create one
+  // Create session on first load
   useEffect(() => {
     if (!sessionId && !isCreating) {
-      createSession(undefined, {
-        onSuccess: (data) => {
-          setSessionId(data.id);
-          localStorage.setItem("wizard_session_id", data.id);
-        }
-      });
+      createNew();
     }
-  }, [sessionId, isCreating, createSession]);
+  }, [sessionId, isCreating, createNew]);
 
-  // If error loading session (e.g. not found), clear it and create new
+  // Session not found on server (e.g. server restart) → create a fresh one
   useEffect(() => {
-    if (sessionId && isError) {
-      setSessionId(null);
+    if (isError && sessionId) {
       localStorage.removeItem("wizard_session_id");
+      setSessionId(null);
+      queryClient.removeQueries({ queryKey: getGetSessionQueryKey(sessionId) });
+      createNew();
     }
-  }, [sessionId, isError]);
+  }, [isError, sessionId, queryClient, createNew]);
 
   const resetSession = useCallback(() => {
-    setSessionId(null);
+    if (sessionId) {
+      queryClient.removeQueries({ queryKey: getGetSessionQueryKey(sessionId) });
+    }
     localStorage.removeItem("wizard_session_id");
-  }, []);
+    setSessionId(null);
+    isRecovering.current = false;
+    createNew();
+  }, [sessionId, queryClient, createNew]);
 
   const refreshSession = useCallback(() => {
     if (sessionId) {
@@ -53,11 +72,13 @@ export function useWizardSession() {
     }
   }, [sessionId, queryClient]);
 
+  const isInitializing = !session && (isSessionLoading || isCreating || !!sessionId);
+
   return {
     sessionId,
     session,
-    isLoading: isSessionLoading || isCreating || (!session && !!sessionId && !isError),
+    isLoading: isInitializing,
     refreshSession,
-    resetSession
+    resetSession,
   };
 }

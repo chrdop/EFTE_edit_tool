@@ -14,6 +14,7 @@ interface PreviewModifyRow {
   currentEfte?: number | null;
   newHours?: number | null;
   newEfte?: number | null;
+  remarks?: string | null;
 }
 
 interface PreviewData {
@@ -103,7 +104,7 @@ export function generateReportPdf(
     lines.push(`${preview.modifyPreview.length} adjustment(s) applied`);
     lines.push("");
     lines.push(
-      `${col("Row", 6)}${col("Location", 28)}${col("Old Hours", 12)}${col("Old EFTE", 12)}${col("New Hours", 12)}New EFTE`,
+      `${col("Row", 6)}${col("Location", 28)}${col("Old Hours", 12)}${col("Old EFTE", 12)}${col("New Hours", 12)}${col("New EFTE", 12)}Remarks`,
     );
     lines.push(line("-"));
     for (const row of preview.modifyPreview) {
@@ -111,7 +112,7 @@ export function generateReportPdf(
         row.newHours !== row.currentHours || row.newEfte !== row.currentEfte;
       const marker = changed ? " *" : "  ";
       lines.push(
-        `${col(String(row.rowNumber), 6)}${col(row.locationName, 28)}${col(fmt(row.currentHours), 12)}${col(fmt(row.currentEfte), 12)}${col(fmt(row.newHours), 12)}${fmt(row.newEfte)}${marker}`,
+        `${col(String(row.rowNumber), 6)}${col(row.locationName, 28)}${col(fmt(row.currentHours), 12)}${col(fmt(row.currentEfte), 12)}${col(fmt(row.newHours), 12)}${col(fmt(row.newEfte), 12)}${row.remarks ?? ""}${marker}`,
       );
     }
     lines.push("");

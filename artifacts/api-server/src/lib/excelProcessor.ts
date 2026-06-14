@@ -200,6 +200,7 @@ export interface PreviewModifyRow {
   currentEfte: number | null;
   newHours: number | null;
   newEfte: number | null;
+  remarks?: string;
 }
 
 function calcNew(current: number | null, adjustment: number, plusMinus: "+" | "-", divisor: number): number | null {
@@ -320,6 +321,7 @@ export async function previewChanges(
           currentEfte,
           newHours,
           newEfte,
+          remarks: mr.remarks,
         });
       }
     }

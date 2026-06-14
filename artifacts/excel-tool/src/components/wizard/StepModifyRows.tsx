@@ -86,7 +86,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
   const addRow = () => {
     const newRows = [
       ...rows,
-      { locationName: defaultLocation, rowNumber: 0, plusMinus: "+" as ModifyRowConfigPlusMinus, hoursAdjustment: 0, efteAdjustment: 0, divisor: 1 },
+      { locationName: defaultLocation, rowNumber: 0, plusMinus: "+" as ModifyRowConfigPlusMinus, hoursAdjustment: 0, efteAdjustment: 0, divisor: 1, remarks: "" },
     ];
     setRows(newRows);
   };
@@ -148,6 +148,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
+                  <TableHead className="min-w-[180px]">Remarks</TableHead>
                   <TableHead className="min-w-[190px]">Location</TableHead>
                   <TableHead className="min-w-[90px]">Row</TableHead>
                   <TableHead className="min-w-[80px]">+/−</TableHead>
@@ -174,6 +175,17 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
 
                   return (
                     <TableRow key={index} className={isAllLocations ? "bg-amber-50/30" : ""}>
+                      {/* Remarks */}
+                      <TableCell>
+                        <Input
+                          type="text"
+                          value={row.remarks ?? ""}
+                          onChange={(e) => updateRow(index, "remarks", e.target.value)}
+                          className="w-full text-xs"
+                          placeholder="Optional remark…"
+                        />
+                      </TableCell>
+
                       {/* Location */}
                       <TableCell>
                         <Select

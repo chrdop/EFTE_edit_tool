@@ -285,6 +285,8 @@ components:
           type: number
         divisor:
           type: number
+        remarks:
+          type: string
 
     Session:
       type: object

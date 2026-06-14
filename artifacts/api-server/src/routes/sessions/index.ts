@@ -160,6 +160,7 @@ router.post(
         newFiles.push({
           id: uuidv4(),
           originalName: file.originalname,
+          locationName: analysis.locationName,
           filePath: file.path,
           sheetNames: analysis.sheetNames,
           detectedMonths: analysis.detectedMonths,

@@ -308,8 +308,8 @@ router.post("/sessions/:sessionId/export", async (req, res): Promise<void> => {
     session.modifyRows,
   );
   const pdfBuffer = await generateReportPdf(session, preview);
-  const pdfFilename = `Change_Report_${session.selectedMonth}.pdf`;
-  const pdfPath = path.join(uploadsDir, `${params.data.sessionId}-report.pdf`);
+  const pdfFilename = `Change_Report_${session.selectedMonth}.txt`;
+  const pdfPath = path.join(uploadsDir, `${params.data.sessionId}-report.txt`);
   fs.writeFileSync(pdfPath, pdfBuffer);
 
   updateSession(params.data.sessionId, {
@@ -343,9 +343,9 @@ router.get("/sessions/:sessionId/download-pdf", async (req, res): Promise<void> 
     return;
   }
 
-  const pdfFilename = `Change_Report_${session.selectedMonth ?? "export"}.pdf`;
+  const pdfFilename = `Change_Report_${session.selectedMonth ?? "export"}.txt`;
   res.setHeader("Content-Disposition", `attachment; filename="${pdfFilename}"`);
-  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.sendFile(session.exportedPdfPath);
 });
 

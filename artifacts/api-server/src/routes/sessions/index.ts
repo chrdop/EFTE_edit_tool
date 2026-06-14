@@ -10,7 +10,7 @@ import {
   type DeleteRowConfig,
   type ModifyRowConfig,
 } from "../../lib/sessionStore.js";
-import { analyzeExcelFile, previewChanges, buildMasterExcel, readCurrentValues, listDataRows } from "../../lib/excelProcessor.js";
+import { analyzeExcelFile, previewChanges, buildMasterExcel, readCurrentValues } from "../../lib/excelProcessor.js";
 import {
   GetSessionParams,
   UpdateSessionParams,
@@ -226,23 +226,6 @@ router.post("/sessions/:sessionId/read-values", async (req, res): Promise<void> 
   );
 
   res.json({ values });
-});
-
-// GET /sessions/:sessionId/row-list
-router.get("/sessions/:sessionId/row-list", async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId;
-  const params = GetSessionParams.safeParse({ sessionId: raw });
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-  const session = getSession(params.data.sessionId);
-  if (!session) {
-    res.status(404).json({ error: "Session not found" });
-    return;
-  }
-  const rows = await listDataRows(session.files);
-  res.json({ rows });
 });
 
 // POST /sessions/:sessionId/preview

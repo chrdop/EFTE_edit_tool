@@ -330,35 +330,6 @@ export async function previewChanges(
   return { deletePreview, modifyPreview };
 }
 
-export interface RowLabel {
-  rowNumber: number;
-  label: string;
-}
-
-/**
- * Reads column A of the first uploaded file and returns all rows that have
- * a non-empty text value — used to populate the row-number dropdown in the UI.
- */
-export async function listDataRows(files: UploadedFile[]): Promise<RowLabel[]> {
-  if (files.length === 0) return [];
-  const file = files[0];
-  const workbook = XLSX.readFile(file.filePath, { cellFormula: false });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) return [];
-  const ws = workbook.Sheets[sheetName];
-  if (!ws || !ws["!ref"]) return [];
-  const range = XLSX.utils.decode_range(ws["!ref"]);
-  const result: RowLabel[] = [];
-  for (let r = 0; r <= range.e.r; r++) {
-    const cellA = ws[XLSX.utils.encode_cell({ r, c: 0 })];
-    if (!cellA || cellA.v === null || cellA.v === undefined) continue;
-    const label = String(cellA.v).trim();
-    if (!label) continue;
-    result.push({ rowNumber: r + 1, label });
-  }
-  return result;
-}
-
 export async function buildMasterExcel(
   files: UploadedFile[],
   month: string,

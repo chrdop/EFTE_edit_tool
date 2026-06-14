@@ -14,7 +14,7 @@ interface PreviewModifyRow {
   currentEfte?: number | null;
   newHours?: number | null;
   newEfte?: number | null;
-  remarks?: string;
+  remarks?: string | null;
 }
 
 interface PreviewData {
@@ -111,9 +111,8 @@ export function generateReportPdf(
       const changed =
         row.newHours !== row.currentHours || row.newEfte !== row.currentEfte;
       const marker = changed ? " *" : "  ";
-      const remarks = row.remarks ?? "";
       lines.push(
-        `${col(String(row.rowNumber), 6)}${col(row.locationName, 28)}${col(fmt(row.currentHours), 12)}${col(fmt(row.currentEfte), 12)}${col(fmt(row.newHours), 12)}${col(fmt(row.newEfte), 12)}${remarks}${marker}`,
+        `${col(String(row.rowNumber), 6)}${col(row.locationName, 28)}${col(fmt(row.currentHours), 12)}${col(fmt(row.currentEfte), 12)}${col(fmt(row.newHours), 12)}${col(fmt(row.newEfte), 12)}${row.remarks ?? ""}${marker}`,
       );
     }
     lines.push("");

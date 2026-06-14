@@ -99,7 +99,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
   const addRow = () => {
     const newRows = [
       ...rows,
-      { locationName: defaultLocation, rowNumber: 0, plusMinus: "+" as ModifyRowConfigPlusMinus, hoursAdjustment: 0, efteAdjustment: 0, divisor: 1 },
+      { locationName: defaultLocation, rowNumber: 0, plusMinus: "+" as ModifyRowConfigPlusMinus, hoursAdjustment: 0, efteAdjustment: 0, divisor: 1, remarks: "" },
     ];
     setRows(newRows);
   };
@@ -174,6 +174,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
                   <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
                   <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">New EFTE</TableHead>
+                  <TableHead className="min-w-[160px] text-xs">Remarks</TableHead>
                   <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -318,6 +319,17 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                       {/* New EFTE */}
                       <TableCell className="bg-primary/5 align-middle text-xs font-mono font-semibold text-primary whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(newEfte)}
+                      </TableCell>
+
+                      {/* Remarks */}
+                      <TableCell>
+                        <Input
+                          type="text"
+                          value={row.remarks ?? ""}
+                          onChange={(e) => updateRow(index, "remarks", e.target.value)}
+                          className="w-full text-xs min-w-[150px]"
+                          placeholder="Optional remark…"
+                        />
                       </TableCell>
 
                       {/* Remove */}

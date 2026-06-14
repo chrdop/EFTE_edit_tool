@@ -13,8 +13,12 @@ interface StepDeleteRowsProps {
   refreshSession: () => void;
 }
 
+const DEFAULT_ROWS: DeleteRowConfig[] = [{ rowNumber: 17 }, { rowNumber: 18 }];
+
 export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSession }: StepDeleteRowsProps) {
-  const [rows, setRows] = useState<DeleteRowConfig[]>(session.deleteRows || []);
+  const [rows, setRows] = useState<DeleteRowConfig[]>(
+    session.deleteRows && session.deleteRows.length > 0 ? session.deleteRows : DEFAULT_ROWS
+  );
   const { mutate: updateSession, isPending } = useUpdateSession();
 
   const addRow = () => {
@@ -50,9 +54,9 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Configure Delete Rows</h2>
+        <h2 className="text-xl font-bold tracking-tight">Zeilen löschen</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Specify row numbers to clear. Hours and EFTE cells will be set to 0/empty for the selected month ({session.selectedMonth}) across all sheets.
+          Zeilennummern angeben, die geleert werden sollen. Hours- und EFTE-Zellen werden für den gewählten Monat ({session.selectedMonth}) in allen Sheets auf 0 gesetzt.
         </p>
       </div>
 
@@ -60,27 +64,27 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
         <div className="bg-muted/40 p-4 border-b flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm font-semibold text-foreground">
             <Trash2 className="w-4 h-4 text-muted-foreground" />
-            <span>Target Rows to Clear</span>
+            <span>Zu leerende Zeilen</span>
           </div>
           <Button onClick={addRow} size="sm" variant="secondary" className="h-8">
             <Plus className="w-4 h-4 mr-1" />
-            Add Row
+            Zeile hinzufügen
           </Button>
         </div>
         
         <div className="p-4 space-y-3">
           {rows.length === 0 ? (
             <div className="text-center py-8 text-sm text-muted-foreground border-2 border-dashed rounded-md bg-muted/20">
-              No rows configured. Click "Add Row" to specify rows to clear, or skip this step.
+              Keine Zeilen konfiguriert. „Zeile hinzufügen" klicken oder diesen Schritt überspringen.
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
               {rows.map((row, index) => (
                 <div key={index} className="flex items-center space-x-2 group">
                   <div className="relative flex-1">
-                    <Label htmlFor={`row-${index}`} className="sr-only">Row Number</Label>
+                    <Label htmlFor={`row-${index}`} className="sr-only">Zeilennummer</Label>
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <span className="text-muted-foreground text-sm font-medium">Row</span>
+                      <span className="text-muted-foreground text-sm font-medium">Zeile</span>
                     </div>
                     <Input
                       id={`row-${index}`}
@@ -88,8 +92,8 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
                       min={1}
                       value={row.rowNumber || ""}
                       onChange={(e) => updateRow(index, e.target.value)}
-                      className="pl-12 font-mono"
-                      placeholder="e.g. 42"
+                      className="pl-14 font-mono"
+                      placeholder="z.B. 42"
                     />
                   </div>
                   <Button
@@ -97,7 +101,7 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
                     size="icon"
                     onClick={() => removeRow(index)}
                     className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    title="Remove row"
+                    title="Zeile entfernen"
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -110,10 +114,10 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
 
       <div className="pt-6 flex justify-between border-t">
         <Button variant="outline" onClick={onBack} size="lg">
-          Back
+          Zurück
         </Button>
         <Button onClick={handleNext} disabled={isPending} size="lg" className="min-w-32 shadow-sm font-semibold">
-          {isPending ? "Saving..." : "Next Step"}
+          {isPending ? "Speichern…" : "Weiter"}
         </Button>
       </div>
     </div>

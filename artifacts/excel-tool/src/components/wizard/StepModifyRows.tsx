@@ -58,9 +58,13 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
 
       setIsFetchingValues(true);
       try {
+        const token = localStorage.getItem("app_auth_token");
         const res = await fetch(`/api/sessions/${sessionId}/read-values`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({ items }),
         });
         if (res.ok) {

@@ -33,8 +33,10 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
     files.forEach((f) => formData.append("files", f));
 
     try {
+      const token = localStorage.getItem("app_auth_token");
       const res = await fetch(`/api/sessions/${sessionId}/upload`, {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       });
       if (!res.ok) {

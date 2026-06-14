@@ -235,6 +235,10 @@ export async function previewChanges(
       }
 
       for (const mr of modifyRows) {
+        // divisor=0: only apply to matching location; divisor>0: apply to all locations
+        const appliesToThisFile = mr.divisor !== 0 || file.locationName === mr.locationName;
+        if (!appliesToThisFile) continue;
+
         const currentHours = getCellValue(ws, mr.rowNumber, cols.hoursCol0);
         const currentEfte = getCellValue(ws, mr.rowNumber, cols.efteCol0);
         modifyPreview.push({
@@ -294,7 +298,11 @@ export async function buildMasterExcel(
         }
 
         // Modify rows: recalculate and write new values
+        // divisor=0 → only apply to matching location; divisor>0 → apply to all locations
         for (const mr of modifyRows) {
+          const appliesToThisFile = mr.divisor !== 0 || file.locationName === mr.locationName;
+          if (!appliesToThisFile) continue;
+
           const currentHours = getCellValue(targetWs, mr.rowNumber, cols.hoursCol0);
           const currentEfte = getCellValue(targetWs, mr.rowNumber, cols.efteCol0);
 

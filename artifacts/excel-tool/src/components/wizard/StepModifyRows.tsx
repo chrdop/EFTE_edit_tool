@@ -122,6 +122,12 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
         </p>
       </div>
 
+      {/* Legend */}
+      <div className="rounded-md border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
+        <p><span className="font-semibold text-foreground">Divisor = 0:</span> Neuer Wert wird <span className="font-semibold text-foreground">nur beim gewählten Standort</span> in diese Zeile geschrieben.</p>
+        <p><span className="font-semibold text-foreground">Divisor &gt; 0:</span> Neuer Wert wird bei <span className="font-semibold text-foreground">allen Standorten</span> in diese Zeile geschrieben.</p>
+      </div>
+
       <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
         <div className="bg-muted/40 p-4 border-b flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm font-semibold text-foreground">
@@ -143,17 +149,20 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="min-w-[200px]">Standort</TableHead>
-                  <TableHead className="w-20">Zeile</TableHead>
-                  <TableHead className="w-20">+/−</TableHead>
-                  <TableHead>Hours Adj.</TableHead>
-                  <TableHead>EFTE Adj.</TableHead>
-                  <TableHead>Divisor</TableHead>
-                  <TableHead className="bg-blue-50/60 border-l text-blue-700/80 text-xs">Ist Hours</TableHead>
-                  <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs">Ist EFTE</TableHead>
-                  <TableHead className="bg-primary/5 border-l text-primary/80 text-xs">Hours neu</TableHead>
-                  <TableHead className="bg-primary/5 text-primary/80 text-xs">EFTE neu</TableHead>
-                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="min-w-[190px]">Standort</TableHead>
+                  <TableHead className="w-16">Zeile</TableHead>
+                  <TableHead className="w-16">+/−</TableHead>
+                  <TableHead className="min-w-[110px]">Hours Adj.</TableHead>
+                  <TableHead className="min-w-[110px]">EFTE Adj.</TableHead>
+                  <TableHead className="min-w-[90px]">
+                    <span>Divisor</span>
+                    <span className="block text-[10px] font-normal text-muted-foreground leading-tight">0 = nur Standort</span>
+                  </TableHead>
+                  <TableHead className="bg-blue-50/60 border-l text-blue-700/80 text-xs whitespace-nowrap">Ist Hours</TableHead>
+                  <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Ist EFTE</TableHead>
+                  <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">Hours neu</TableHead>
+                  <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">EFTE neu</TableHead>
+                  <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -162,16 +171,17 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   const cv = row.rowNumber > 0 && row.locationName ? currentValues[key] : undefined;
                   const newHours = cv ? calcNew(cv.hours, row.hoursAdjustment, row.plusMinus, row.divisor) : null;
                   const newEfte = cv ? calcNew(cv.efte, row.efteAdjustment, row.plusMinus, row.divisor) : null;
+                  const isAllLocations = row.divisor !== 0;
 
                   return (
-                    <TableRow key={index}>
+                    <TableRow key={index} className={isAllLocations ? "bg-amber-50/30" : ""}>
                       {/* Standort per row */}
                       <TableCell>
                         <Select
                           value={row.locationName || ""}
                           onValueChange={(val) => updateRow(index, "locationName", val)}
                         >
-                          <SelectTrigger className="text-xs min-w-[180px]">
+                          <SelectTrigger className="text-xs min-w-[170px]">
                             <SelectValue placeholder="Standort wählen…" />
                           </SelectTrigger>
                           <SelectContent>
@@ -202,7 +212,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           value={row.plusMinus}
                           onValueChange={(val) => updateRow(index, "plusMinus", val as ModifyRowConfigPlusMinus)}
                         >
-                          <SelectTrigger className="font-mono text-center">
+                          <SelectTrigger className="font-mono text-center w-full">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -219,6 +229,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           value={row.hoursAdjustment || ""}
                           onChange={(e) => updateRow(index, "hoursAdjustment", parseFloat(e.target.value) || 0)}
                           className="w-full font-mono text-xs"
+                          placeholder="0"
                         />
                       </TableCell>
 
@@ -229,19 +240,25 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           value={row.efteAdjustment || ""}
                           onChange={(e) => updateRow(index, "efteAdjustment", parseFloat(e.target.value) || 0)}
                           className="w-full font-mono text-xs"
+                          placeholder="0"
                         />
                       </TableCell>
 
                       {/* Divisor */}
                       <TableCell>
-                        <Input
-                          type="number"
-                          min={0.01}
-                          step={0.01}
-                          value={row.divisor || ""}
-                          onChange={(e) => updateRow(index, "divisor", parseFloat(e.target.value) || 1)}
-                          className="w-full font-mono text-xs"
-                        />
+                        <div className="space-y-0.5">
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={row.divisor === 0 ? "0" : (row.divisor || "")}
+                            onChange={(e) => updateRow(index, "divisor", parseFloat(e.target.value) ?? 1)}
+                            className="w-full font-mono text-xs"
+                          />
+                          <p className={`text-[10px] leading-tight font-medium ${isAllLocations ? "text-amber-600" : "text-blue-600"}`}>
+                            {isAllLocations ? "alle Standorte" : "nur Standort"}
+                          </p>
+                        </div>
                       </TableCell>
 
                       {/* Ist Hours */}

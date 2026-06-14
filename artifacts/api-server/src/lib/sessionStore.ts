@@ -22,7 +22,6 @@ export interface ModifyRowConfig {
   hoursAdjustment: number;
   efteAdjustment: number;
   divisor: number;
-  remarks?: string;
 }
 
 export type SessionStatus = "empty" | "uploaded" | "configured" | "exported";

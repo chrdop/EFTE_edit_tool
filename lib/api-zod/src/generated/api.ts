@@ -41,8 +41,7 @@ export const GetSessionResponse = zod.object({
   "plusMinus": zod.enum(['+', '-']),
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
-  "divisor": zod.number(),
-  "remarks": zod.string().optional()
+  "divisor": zod.number()
 })),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
 })
@@ -66,8 +65,7 @@ export const UpdateSessionBody = zod.object({
   "plusMinus": zod.enum(['+', '-']),
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
-  "divisor": zod.number(),
-  "remarks": zod.string().optional()
+  "divisor": zod.number()
 })).optional()
 })
 
@@ -90,8 +88,7 @@ export const UpdateSessionResponse = zod.object({
   "plusMinus": zod.enum(['+', '-']),
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
-  "divisor": zod.number(),
-  "remarks": zod.string().optional()
+  "divisor": zod.number()
 })),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
 })
@@ -127,8 +124,7 @@ export const UploadFilesResponse = zod.object({
   "plusMinus": zod.enum(['+', '-']),
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
-  "divisor": zod.number(),
-  "remarks": zod.string().optional()
+  "divisor": zod.number()
 })),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
 })

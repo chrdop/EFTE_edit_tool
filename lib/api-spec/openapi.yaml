@@ -6,6 +6,28 @@ servers:
   - url: /api
 
 paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Verify the app password and receive an auth token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResult"
+        "401":
+          description: Wrong password
+        "503":
+          description: APP_PASSWORD not configured
+
   /healthz:
     get:
       operationId: getHealth
@@ -438,4 +460,18 @@ components:
         success:
           type: boolean
         message:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
+    LoginResult:
+      type: object
+      required: [token]
+      properties:
+        token:
           type: string

@@ -21,22 +21,32 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
     fetchPreview({ sessionId });
   }, [sessionId, fetchPreview]);
 
+  async function authenticatedDownload(url: string, filename: string) {
+    const token = localStorage.getItem("app_auth_token");
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(objectUrl);
+  }
+
   const handleExport = () => {
     exportSession(
       { sessionId },
       {
         onSuccess: (data) => {
-          // Trigger Excel download
-          window.location.href = data.downloadUrl;
-          // Trigger PDF report download with a short delay so both go through
+          void authenticatedDownload(data.downloadUrl, data.filename);
           setTimeout(() => {
-            const a = document.createElement("a");
-            a.href = data.pdfUrl;
-            a.download = data.pdfFilename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          }, 800);
+            void authenticatedDownload(data.pdfUrl, data.pdfFilename);
+          }, 400);
         },
       },
     );

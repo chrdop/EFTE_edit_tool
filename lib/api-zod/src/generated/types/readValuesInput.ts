@@ -4,8 +4,8 @@
  * Api
  * OpenAPI spec version: 1.0.0
  */
+import type { ReadValuesItem } from './readValuesItem';
 
 export interface ReadValuesInput {
-  locationName: string;
-  rowNumbers: number[];
+  items: ReadValuesItem[];
 }

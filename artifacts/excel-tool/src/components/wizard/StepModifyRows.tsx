@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Session, useUpdateSession, ModifyRowConfig, ModifyRowConfigPlusMinus } from "@workspace/api-client-react";
-import { Plus, X, Calculator, MapPin } from "lucide-react";
+import { Plus, X, Calculator } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -11,6 +11,9 @@ interface RowCurrentValue {
   hours: number | null;
   efte: number | null;
 }
+
+// Key: "locationName:rowNumber"
+type ValuesMap = Record<string, RowCurrentValue>;
 
 interface StepModifyRowsProps {
   session: Session;
@@ -26,76 +29,79 @@ function calcNew(current: number | null, adj: number, plusMinus: "+" | "-", divi
   return divisor !== 0 ? Math.round((adjusted / divisor) * 100) / 100 : adjusted;
 }
 
-function fmt(v: number | null): string {
-  if (v === null) return "—";
+function fmt(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
   return v.toLocaleString("de-AT", { maximumFractionDigits: 2 });
 }
 
 export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSession }: StepModifyRowsProps) {
-  const [rows, setRows] = useState<ModifyRowConfig[]>(session.modifyRows || []);
-  const [selectedLocation, setSelectedLocation] = useState<string>("");
-  const [currentValues, setCurrentValues] = useState<Record<number, RowCurrentValue>>({});
+  const defaultLocation = session.files[0]?.locationName ?? "";
+  const [rows, setRows] = useState<ModifyRowConfig[]>(
+    (session.modifyRows || []).map((r) => ({ ...r, locationName: r.locationName || defaultLocation }))
+  );
+  const [currentValues, setCurrentValues] = useState<ValuesMap>({});
   const [isFetchingValues, setIsFetchingValues] = useState(false);
   const { mutate: updateSession, isPending } = useUpdateSession();
 
-  // Unique location names from uploaded files
-  const locations = Array.from(
-    new Map(session.files.map((f) => [f.locationName, f.locationName])).values()
-  ).filter(Boolean);
+  const locations = Array.from(new Set(session.files.map((f) => f.locationName).filter(Boolean)));
 
-  // Auto-select first location
-  useEffect(() => {
-    if (!selectedLocation && locations.length > 0) {
-      setSelectedLocation(locations[0]);
-    }
-  }, [locations, selectedLocation]);
+  const fetchCurrentValues = useCallback(
+    async (rowList: ModifyRowConfig[]) => {
+      const items = rowList
+        .filter((r) => r.rowNumber > 0 && r.locationName)
+        .map((r) => ({ locationName: r.locationName, rowNumber: r.rowNumber }));
 
-  // Fetch current values whenever location or row numbers change
-  const fetchCurrentValues = useCallback(async (location: string, rowNums: number[]) => {
-    const validRows = rowNums.filter((r) => r > 0);
-    if (!location || validRows.length === 0 || !session.selectedMonth) {
-      setCurrentValues({});
-      return;
-    }
-    setIsFetchingValues(true);
-    try {
-      const res = await fetch(`/api/sessions/${sessionId}/read-values`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locationName: location, rowNumbers: validRows }),
-      });
-      if (res.ok) {
-        const data: { values: RowCurrentValue[] } = await res.json();
-        const map: Record<number, RowCurrentValue> = {};
-        for (const v of data.values) map[v.rowNumber] = v;
-        setCurrentValues(map);
+      if (items.length === 0 || !session.selectedMonth) {
+        setCurrentValues({});
+        return;
       }
-    } finally {
-      setIsFetchingValues(false);
-    }
-  }, [sessionId, session.selectedMonth]);
+
+      setIsFetchingValues(true);
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}/read-values`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items }),
+        });
+        if (res.ok) {
+          const data: { values: (RowCurrentValue & { locationName?: string })[] } = await res.json();
+          const map: ValuesMap = {};
+          // Server returns in same order as items, so zip them
+          items.forEach((item, i) => {
+            const v = data.values[i];
+            if (v) map[`${item.locationName}:${item.rowNumber}`] = v;
+          });
+          setCurrentValues(map);
+        }
+      } finally {
+        setIsFetchingValues(false);
+      }
+    },
+    [sessionId, session.selectedMonth],
+  );
 
   useEffect(() => {
-    const rowNums = rows.map((r) => r.rowNumber);
-    fetchCurrentValues(selectedLocation, rowNums);
-  }, [selectedLocation, rows, fetchCurrentValues]);
+    fetchCurrentValues(rows);
+  }, [rows, fetchCurrentValues]);
 
   const addRow = () => {
-    setRows([...rows, { rowNumber: 0, plusMinus: "+", hoursAdjustment: 0, efteAdjustment: 0, divisor: 1 }]);
+    const newRows = [
+      ...rows,
+      { locationName: defaultLocation, rowNumber: 0, plusMinus: "+" as ModifyRowConfigPlusMinus, hoursAdjustment: 0, efteAdjustment: 0, divisor: 1 },
+    ];
+    setRows(newRows);
   };
 
-  const removeRow = (index: number) => {
-    setRows(rows.filter((_, i) => i !== index));
-  };
+  const removeRow = (index: number) => setRows(rows.filter((_, i) => i !== index));
 
   const updateRow = <K extends keyof ModifyRowConfig>(index: number, field: K, value: ModifyRowConfig[K]) => {
     const newRows = [...rows];
-    newRows[index][field] = value;
+    newRows[index] = { ...newRows[index], [field]: value };
     setRows(newRows);
   };
 
   const handleNext = () => {
-    const validRows = rows.filter((r) => r.rowNumber > 0 && r.divisor !== 0);
+    const validRows = rows.filter((r) => r.rowNumber > 0 && r.locationName && r.divisor !== 0);
     updateSession(
       { sessionId, data: { modifyRows: validRows } },
       {
@@ -112,38 +118,10 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
       <div>
         <h2 className="text-xl font-bold tracking-tight">Zeilen anpassen</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Anpassungsregeln für {session.selectedMonth} definieren. Wähle zuerst einen Standort um die Istwerte zu sehen.
+          Anpassungsregeln für {session.selectedMonth} definieren. Jede Zeile kann einen eigenen Standort haben.
         </p>
       </div>
 
-      {/* Location selector */}
-      {locations.length > 0 && (
-        <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
-          <div className="bg-muted/40 p-4 border-b flex items-center space-x-2 text-sm font-semibold text-foreground">
-            <MapPin className="w-4 h-4 text-muted-foreground" />
-            <span>Standort für Istwerte</span>
-          </div>
-          <div className="p-4">
-            <Select value={selectedLocation} onValueChange={(val) => setSelectedLocation(val)}>
-              <SelectTrigger className="max-w-sm">
-                <SelectValue placeholder="Standort auswählen…" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((loc) => (
-                  <SelectItem key={loc} value={loc}>
-                    {loc}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-2">
-              Die Istwerte (Hours / EFTE) werden aus dem gewählten Standort gelesen und für die Berechnung verwendet.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Adjustment rules */}
       <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
         <div className="bg-muted/40 p-4 border-b flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm font-semibold text-foreground">
@@ -165,6 +143,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
+                  <TableHead className="min-w-[200px]">Standort</TableHead>
                   <TableHead className="w-20">Zeile</TableHead>
                   <TableHead className="w-20">+/−</TableHead>
                   <TableHead>Hours Adj.</TableHead>
@@ -179,12 +158,33 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
               </TableHeader>
               <TableBody>
                 {rows.map((row, index) => {
-                  const cv = currentValues[row.rowNumber];
+                  const key = `${row.locationName}:${row.rowNumber}`;
+                  const cv = row.rowNumber > 0 && row.locationName ? currentValues[key] : undefined;
                   const newHours = cv ? calcNew(cv.hours, row.hoursAdjustment, row.plusMinus, row.divisor) : null;
                   const newEfte = cv ? calcNew(cv.efte, row.efteAdjustment, row.plusMinus, row.divisor) : null;
 
                   return (
                     <TableRow key={index}>
+                      {/* Standort per row */}
+                      <TableCell>
+                        <Select
+                          value={row.locationName || ""}
+                          onValueChange={(val) => updateRow(index, "locationName", val)}
+                        >
+                          <SelectTrigger className="text-xs min-w-[180px]">
+                            <SelectValue placeholder="Standort wählen…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {locations.map((loc) => (
+                              <SelectItem key={loc} value={loc} className="text-xs">
+                                {loc}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+
+                      {/* Row number */}
                       <TableCell>
                         <Input
                           type="number"
@@ -195,10 +195,12 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           placeholder="#"
                         />
                       </TableCell>
+
+                      {/* +/- */}
                       <TableCell>
                         <Select
                           value={row.plusMinus}
-                          onValueChange={(val: "+" | "-") => updateRow(index, "plusMinus", val as ModifyRowConfigPlusMinus)}
+                          onValueChange={(val) => updateRow(index, "plusMinus", val as ModifyRowConfigPlusMinus)}
                         >
                           <SelectTrigger className="font-mono text-center">
                             <SelectValue />
@@ -209,6 +211,8 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           </SelectContent>
                         </Select>
                       </TableCell>
+
+                      {/* Hours adjustment */}
                       <TableCell>
                         <Input
                           type="number"
@@ -217,6 +221,8 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           className="w-full font-mono text-xs"
                         />
                       </TableCell>
+
+                      {/* EFTE adjustment */}
                       <TableCell>
                         <Input
                           type="number"
@@ -225,6 +231,8 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           className="w-full font-mono text-xs"
                         />
                       </TableCell>
+
+                      {/* Divisor */}
                       <TableCell>
                         <Input
                           type="number"
@@ -235,18 +243,28 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           className="w-full font-mono text-xs"
                         />
                       </TableCell>
+
+                      {/* Ist Hours */}
                       <TableCell className="bg-blue-50/60 border-l align-middle text-xs font-mono text-blue-800 whitespace-nowrap">
-                        {isFetchingValues ? "…" : fmt(cv?.hours ?? null)}
+                        {isFetchingValues ? "…" : fmt(cv?.hours)}
                       </TableCell>
+
+                      {/* Ist EFTE */}
                       <TableCell className="bg-blue-50/60 align-middle text-xs font-mono text-blue-800 whitespace-nowrap">
-                        {isFetchingValues ? "…" : fmt(cv?.efte ?? null)}
+                        {isFetchingValues ? "…" : fmt(cv?.efte)}
                       </TableCell>
+
+                      {/* Hours neu */}
                       <TableCell className="bg-primary/5 border-l align-middle text-xs font-mono font-semibold text-primary whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(newHours)}
                       </TableCell>
+
+                      {/* EFTE neu */}
                       <TableCell className="bg-primary/5 align-middle text-xs font-mono font-semibold text-primary whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(newEfte)}
                       </TableCell>
+
+                      {/* Delete */}
                       <TableCell>
                         <Button
                           variant="ghost"

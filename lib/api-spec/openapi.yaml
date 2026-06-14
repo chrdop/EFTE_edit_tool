@@ -242,8 +242,10 @@ components:
 
     ModifyRowConfig:
       type: object
-      required: [rowNumber, hoursAdjustment, efteAdjustment, divisor, plusMinus]
+      required: [rowNumber, hoursAdjustment, efteAdjustment, divisor, plusMinus, locationName]
       properties:
+        locationName:
+          type: string
         rowNumber:
           type: integer
         plusMinus:
@@ -337,16 +339,23 @@ components:
           items:
             $ref: "#/components/schemas/PreviewModifyRow"
 
-    ReadValuesInput:
+    ReadValuesItem:
       type: object
-      required: [locationName, rowNumbers]
+      required: [locationName, rowNumber]
       properties:
         locationName:
           type: string
-        rowNumbers:
+        rowNumber:
+          type: integer
+
+    ReadValuesInput:
+      type: object
+      required: [items]
+      properties:
+        items:
           type: array
           items:
-            type: integer
+            $ref: "#/components/schemas/ReadValuesItem"
 
     RowCurrentValue:
       type: object

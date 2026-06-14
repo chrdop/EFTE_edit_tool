@@ -15,6 +15,7 @@ export * from './previewDeleteRow';
 export * from './previewModifyRow';
 export * from './previewResult';
 export * from './readValuesInput';
+export * from './readValuesItem';
 export * from './readValuesResult';
 export * from './rowCurrentValue';
 export * from './session';

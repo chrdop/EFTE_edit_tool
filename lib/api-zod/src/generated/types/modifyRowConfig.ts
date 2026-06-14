@@ -7,6 +7,7 @@
 import type { ModifyRowConfigPlusMinus } from './modifyRowConfigPlusMinus';
 
 export interface ModifyRowConfig {
+  locationName: string;
   rowNumber: number;
   plusMinus: ModifyRowConfigPlusMinus;
   hoursAdjustment: number;

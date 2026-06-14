@@ -217,9 +217,8 @@ router.post("/sessions/:sessionId/read-values", async (req, res): Promise<void> 
 
   const values = await readCurrentValues(
     session.files,
-    body.data.locationName,
     session.selectedMonth,
-    body.data.rowNumbers,
+    body.data.items,
   );
 
   res.json({ values });

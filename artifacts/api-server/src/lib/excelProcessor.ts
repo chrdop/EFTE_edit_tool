@@ -131,32 +131,57 @@ export interface RowCurrentValue {
   efte: number | null;
 }
 
+export interface ReadValuesItem {
+  locationName: string;
+  rowNumber: number;
+}
+
 export async function readCurrentValues(
   files: UploadedFile[],
-  locationName: string,
   month: string,
-  rowNumbers: number[],
+  items: ReadValuesItem[],
 ): Promise<RowCurrentValue[]> {
-  // Find the file whose locationName matches
-  const file = files.find((f) => f.locationName === locationName);
-  if (!file) return rowNumbers.map((r) => ({ rowNumber: r, hours: null, efte: null }));
-
-  const workbook = XLSX.readFile(file.filePath, { cellStyles: true, cellFormula: true });
-
-  for (const sheetName of workbook.SheetNames) {
-    const ws = workbook.Sheets[sheetName];
-    if (!ws) continue;
-    const cols = findMonthCols(ws, month);
-    if (!cols) continue;
-
-    return rowNumbers.map((rowNumber) => ({
-      rowNumber,
-      hours: getCellValue(ws, rowNumber, cols.hoursCol0),
-      efte: getCellValue(ws, rowNumber, cols.efteCol0),
-    }));
+  // Group items by locationName to avoid re-reading the same file multiple times
+  const byLocation = new Map<string, number[]>();
+  for (const item of items) {
+    if (!byLocation.has(item.locationName)) byLocation.set(item.locationName, []);
+    byLocation.get(item.locationName)!.push(item.rowNumber);
   }
 
-  return rowNumbers.map((r) => ({ rowNumber: r, hours: null, efte: null }));
+  // Build a result map keyed by "locationName:rowNumber"
+  const resultMap = new Map<string, RowCurrentValue>();
+
+  for (const [locationName, rowNumbers] of byLocation) {
+    const file = files.find((f) => f.locationName === locationName);
+    if (!file) {
+      for (const r of rowNumbers) resultMap.set(`${locationName}:${r}`, { rowNumber: r, hours: null, efte: null });
+      continue;
+    }
+
+    const workbook = XLSX.readFile(file.filePath, { cellStyles: true, cellFormula: true });
+    let found = false;
+    for (const sheetName of workbook.SheetNames) {
+      const ws = workbook.Sheets[sheetName];
+      if (!ws) continue;
+      const cols = findMonthCols(ws, month);
+      if (!cols) continue;
+      for (const rowNumber of rowNumbers) {
+        resultMap.set(`${locationName}:${rowNumber}`, {
+          rowNumber,
+          hours: getCellValue(ws, rowNumber, cols.hoursCol0),
+          efte: getCellValue(ws, rowNumber, cols.efteCol0),
+        });
+      }
+      found = true;
+      break;
+    }
+    if (!found) {
+      for (const r of rowNumbers) resultMap.set(`${locationName}:${r}`, { rowNumber: r, hours: null, efte: null });
+    }
+  }
+
+  // Return in original order
+  return items.map((item) => resultMap.get(`${item.locationName}:${item.rowNumber}`) ?? { rowNumber: item.rowNumber, hours: null, efte: null });
 }
 
 export interface PreviewDeleteRow {

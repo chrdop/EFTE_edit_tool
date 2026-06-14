@@ -36,6 +36,7 @@ export const GetSessionResponse = zod.object({
   "rowNumber": zod.number()
 })),
   "modifyRows": zod.array(zod.object({
+  "locationName": zod.string(),
   "rowNumber": zod.number(),
   "plusMinus": zod.enum(['+', '-']),
   "hoursAdjustment": zod.number(),
@@ -59,6 +60,7 @@ export const UpdateSessionBody = zod.object({
   "rowNumber": zod.number()
 })).optional(),
   "modifyRows": zod.array(zod.object({
+  "locationName": zod.string(),
   "rowNumber": zod.number(),
   "plusMinus": zod.enum(['+', '-']),
   "hoursAdjustment": zod.number(),
@@ -81,6 +83,7 @@ export const UpdateSessionResponse = zod.object({
   "rowNumber": zod.number()
 })),
   "modifyRows": zod.array(zod.object({
+  "locationName": zod.string(),
   "rowNumber": zod.number(),
   "plusMinus": zod.enum(['+', '-']),
   "hoursAdjustment": zod.number(),
@@ -116,6 +119,7 @@ export const UploadFilesResponse = zod.object({
   "rowNumber": zod.number()
 })),
   "modifyRows": zod.array(zod.object({
+  "locationName": zod.string(),
   "rowNumber": zod.number(),
   "plusMinus": zod.enum(['+', '-']),
   "hoursAdjustment": zod.number(),
@@ -134,8 +138,10 @@ export const ReadCurrentValuesParams = zod.object({
 })
 
 export const ReadCurrentValuesBody = zod.object({
+  "items": zod.array(zod.object({
   "locationName": zod.string(),
-  "rowNumbers": zod.array(zod.number())
+  "rowNumber": zod.number()
+}))
 })
 
 export const ReadCurrentValuesResponse = zod.object({

@@ -33,6 +33,7 @@ export const ModifyRowConfigPlusMinus = {
 } as const;
 
 export interface ModifyRowConfig {
+  locationName: string;
   rowNumber: number;
   plusMinus: ModifyRowConfigPlusMinus;
   hoursAdjustment: number;
@@ -94,9 +95,13 @@ export interface PreviewResult {
   modifyPreview: PreviewModifyRow[];
 }
 
-export interface ReadValuesInput {
+export interface ReadValuesItem {
   locationName: string;
-  rowNumbers: number[];
+  rowNumber: number;
+}
+
+export interface ReadValuesInput {
+  items: ReadValuesItem[];
 }
 
 export interface RowCurrentValue {

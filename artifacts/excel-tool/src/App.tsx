@@ -7,6 +7,11 @@ import NotFound from "@/pages/not-found";
 import { Wizard } from "@/pages/Wizard";
 import Login, { AUTH_TOKEN_KEY } from "@/pages/Login";
 
+function clearAuthAndReload() {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  window.location.reload();
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -14,6 +19,26 @@ const queryClient = new QueryClient({
       retry: false,
     },
   },
+});
+
+queryClient.getQueryCache().subscribe((event) => {
+  if (
+    event.type === "updated" &&
+    event.action.type === "error" &&
+    (event.action.error as { status?: number })?.status === 401
+  ) {
+    clearAuthAndReload();
+  }
+});
+
+queryClient.getMutationCache().subscribe((event) => {
+  if (
+    event.type === "updated" &&
+    event.mutation?.state.status === "error" &&
+    (event.mutation.state.error as { status?: number })?.status === 401
+  ) {
+    clearAuthAndReload();
+  }
 });
 
 function AuthGuard({ children }: { children: React.ReactNode }) {

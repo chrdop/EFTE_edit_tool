@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Session, usePreviewChanges, useExportSession, useSendEmail } from "@workspace/api-client-react";
-import { Download, AlertCircle, FileText, CheckCircle2, Mail, Send } from "lucide-react";
+import { Session, usePreviewChanges, useExportSession } from "@workspace/api-client-react";
+import { Download, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,10 +16,6 @@ interface StepPreviewExportProps {
 export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExportProps) {
   const { mutate: fetchPreview, data: previewData, isPending: isPreviewLoading, isError: isPreviewError } = usePreviewChanges();
   const { mutate: exportSession, isPending: isExporting } = useExportSession();
-  const { mutate: sendEmail, isPending: isSending } = useSendEmail();
-
-  const [email, setEmail] = useState("");
-  const [emailStatus, setEmailStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     fetchPreview({ sessionId });
@@ -32,22 +27,6 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
       {
         onSuccess: (data) => {
           window.location.href = data.downloadUrl;
-        },
-      },
-    );
-  };
-
-  const handleSendEmail = () => {
-    if (!email.trim()) return;
-    setEmailStatus(null);
-    sendEmail(
-      { sessionId, data: { recipientEmail: email.trim() } },
-      {
-        onSuccess: (data) => {
-          setEmailStatus({ type: "success", message: data.message });
-        },
-        onError: (err: Error) => {
-          setEmailStatus({ type: "error", message: err.message ?? "E-Mail konnte nicht gesendet werden." });
         },
       },
     );
@@ -175,49 +154,6 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
           )}
         </div>
       )}
-
-      {/* Email section */}
-      <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
-        <div className="bg-muted/40 px-4 py-3 border-b flex items-center gap-2">
-          <Mail className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-semibold">Per E-Mail senden</span>
-        </div>
-        <div className="p-4 space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Master-Excel-Datei und PDF-Anpassungsbericht werden an die angegebene E-Mail-Adresse gesendet.
-          </p>
-          <div className="flex gap-2">
-            <Input
-              type="email"
-              placeholder="empfaenger@beispiel.at"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setEmailStatus(null); }}
-              className="flex-1"
-              disabled={isSending}
-            />
-            <Button
-              onClick={handleSendEmail}
-              disabled={isSending || !email.trim() || isPreviewLoading}
-              variant="secondary"
-              className="shrink-0"
-            >
-              {isSending ? (
-                "Senden…"
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-1.5" />
-                  Senden
-                </>
-              )}
-            </Button>
-          </div>
-          {emailStatus && (
-            <p className={`text-xs font-medium ${emailStatus.type === "success" ? "text-green-600" : "text-red-600"}`}>
-              {emailStatus.message}
-            </p>
-          )}
-        </div>
-      </div>
 
       <div className="pt-4 flex justify-between border-t">
         <Button variant="outline" onClick={onBack} size="lg">

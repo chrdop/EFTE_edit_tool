@@ -406,12 +406,17 @@ export async function buildMasterExcel(
         }
       }
 
+      // Use cell A2 value as sheet name (contains the location/Standort name)
+      const a2Cell = targetWs["A2"];
+      const a2Value = a2Cell ? String(a2Cell.v ?? "").trim() : "";
+      const baseName = (a2Value || sheetName).slice(0, 31);
+
       // Ensure unique sheet name in master workbook
-      let uniqueName = sheetName.slice(0, 31);
+      let uniqueName = baseName;
       let suffix = 2;
       while (usedSheetNames.has(uniqueName)) {
         const tag = `_${suffix++}`;
-        uniqueName = sheetName.slice(0, 31 - tag.length) + tag;
+        uniqueName = baseName.slice(0, 31 - tag.length) + tag;
       }
       usedSheetNames.add(uniqueName);
 

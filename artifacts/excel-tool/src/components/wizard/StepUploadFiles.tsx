@@ -22,7 +22,7 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
   const uploadFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
     if (session.files.length + files.length > 15) {
-      setError("Maximum 15 Dateien erlaubt.");
+      setError("Maximum 15 files allowed.");
       return;
     }
 
@@ -39,11 +39,11 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error ?? "Upload fehlgeschlagen");
+        throw new Error((body as { error?: string }).error ?? "Upload failed");
       }
       refreshSession();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unbekannter Fehler beim Upload.");
+      setError(err instanceof Error ? err.message : "Unknown error during upload.");
     } finally {
       setIsUploading(false);
       setIsDragging(false);
@@ -83,7 +83,7 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
       (f) => f.name.endsWith(".xlsx") || f.name.endsWith(".xls") || f.name.endsWith(".ods"),
     );
     if (droppedFiles.length === 0) {
-      setError("Nur .xlsx, .xls oder .ods Dateien werden akzeptiert.");
+      setError("Only .xlsx, .xls or .ods files are accepted.");
       return;
     }
     uploadFiles(droppedFiles);
@@ -99,16 +99,16 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Excel-Dateien hochladen</h2>
+        <h2 className="text-xl font-bold tracking-tight">Upload Files</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Bis zu 15 Standort-Reports (.xlsx, .xls) per Drag & Drop oder Dateiauswahl.
+          Up to 15 location reports (.xlsx, .xls) via drag & drop or file selection.
         </p>
       </div>
 
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Fehler</AlertTitle>
+          <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -135,9 +135,9 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
           </div>
           <div className="space-y-1">
             <h3 className="font-semibold text-lg">
-              {isDragging ? "Dateien hier ablegen" : "Dateien hier hinziehen"}
+              {isDragging ? "Drop files here" : "Drag files here"}
             </h3>
-            <p className="text-sm text-muted-foreground">oder per Schaltfläche auswählen</p>
+            <p className="text-sm text-muted-foreground">or select via button below</p>
           </div>
           <input
             type="file"
@@ -149,7 +149,7 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
           />
           <Button asChild variant="outline" className="mt-4" disabled={isUploading}>
             <label htmlFor="file-upload" className="cursor-pointer">
-              {isUploading ? "Wird hochgeladen…" : "Dateien auswählen"}
+              {isUploading ? "Uploading…" : "Select files"}
             </label>
           </Button>
         </div>
@@ -158,7 +158,7 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
       {session.files.length > 0 && (
         <div className="space-y-4">
           <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
-            Hochgeladene Dateien ({session.files.length}/10)
+            Uploaded files ({session.files.length}/15)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {session.files.map((file) => (
@@ -170,7 +170,7 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-3">
-                  <p className="text-xs text-muted-foreground font-medium mb-2">Erkannte Blätter:</p>
+                  <p className="text-xs text-muted-foreground font-medium mb-2">Detected sheets:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {file.sheetNames.map((sheet, i) => (
                       <span
@@ -183,7 +183,7 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
                   </div>
                   {file.detectedMonths.length > 0 && (
                     <>
-                      <p className="text-xs text-muted-foreground font-medium mt-2 mb-1.5">Erkannte Monate:</p>
+                      <p className="text-xs text-muted-foreground font-medium mt-2 mb-1.5">Detected months:</p>
                       <div className="flex flex-wrap gap-1.5">
                         {file.detectedMonths.map((m, i) => (
                           <span
@@ -210,7 +210,7 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
           size="lg"
           className="min-w-32 shadow-sm font-semibold"
         >
-          Weiter
+          Next
         </Button>
       </div>
     </div>

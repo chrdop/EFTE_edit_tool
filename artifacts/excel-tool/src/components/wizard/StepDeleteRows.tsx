@@ -37,9 +37,7 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
   };
 
   const handleNext = () => {
-    // Filter out rows with 0 or invalid numbers
     const validRows = rows.filter(r => r.rowNumber > 0);
-    
     updateSession(
       { sessionId, data: { deleteRows: validRows } },
       {
@@ -54,9 +52,9 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Zeilen löschen</h2>
+        <h2 className="text-xl font-bold tracking-tight">Delete Rows</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Zeilennummern angeben, die geleert werden sollen. Hours- und EFTE-Zellen werden für den gewählten Monat ({session.selectedMonth}) in allen Sheets auf 0 gesetzt.
+          Specify row numbers to clear. Hours and EFTE cells will be set to 0 for the selected month ({session.selectedMonth}) across all sheets.
         </p>
       </div>
 
@@ -64,27 +62,27 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
         <div className="bg-muted/40 p-4 border-b flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm font-semibold text-foreground">
             <Trash2 className="w-4 h-4 text-muted-foreground" />
-            <span>Zu leerende Zeilen</span>
+            <span>Rows to clear</span>
           </div>
           <Button onClick={addRow} size="sm" variant="secondary" className="h-8">
             <Plus className="w-4 h-4 mr-1" />
-            Zeile hinzufügen
+            Add row
           </Button>
         </div>
-        
+
         <div className="p-4 space-y-3">
           {rows.length === 0 ? (
             <div className="text-center py-8 text-sm text-muted-foreground border-2 border-dashed rounded-md bg-muted/20">
-              Keine Zeilen konfiguriert. „Zeile hinzufügen" klicken oder diesen Schritt überspringen.
+              No rows configured. Click "Add row" or skip this step.
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
               {rows.map((row, index) => (
                 <div key={index} className="flex items-center space-x-2 group">
                   <div className="relative flex-1">
-                    <Label htmlFor={`row-${index}`} className="sr-only">Zeilennummer</Label>
+                    <Label htmlFor={`row-${index}`} className="sr-only">Row number</Label>
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <span className="text-muted-foreground text-sm font-medium">Zeile</span>
+                      <span className="text-muted-foreground text-sm font-medium">Row</span>
                     </div>
                     <Input
                       id={`row-${index}`}
@@ -93,7 +91,7 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
                       value={row.rowNumber || ""}
                       onChange={(e) => updateRow(index, e.target.value)}
                       className="pl-14 font-mono"
-                      placeholder="z.B. 42"
+                      placeholder="e.g. 42"
                     />
                   </div>
                   <Button
@@ -101,7 +99,7 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
                     size="icon"
                     onClick={() => removeRow(index)}
                     className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    title="Zeile entfernen"
+                    title="Remove row"
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -114,10 +112,10 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
 
       <div className="pt-6 flex justify-between border-t">
         <Button variant="outline" onClick={onBack} size="lg">
-          Zurück
+          Back
         </Button>
         <Button onClick={handleNext} disabled={isPending} size="lg" className="min-w-32 shadow-sm font-semibold">
-          {isPending ? "Speichern…" : "Weiter"}
+          {isPending ? "Saving…" : "Next"}
         </Button>
       </div>
     </div>

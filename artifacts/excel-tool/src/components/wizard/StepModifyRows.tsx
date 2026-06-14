@@ -66,7 +66,6 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
         if (res.ok) {
           const data: { values: (RowCurrentValue & { locationName?: string })[] } = await res.json();
           const map: ValuesMap = {};
-          // Server returns in same order as items, so zip them
           items.forEach((item, i) => {
             const v = data.values[i];
             if (v) map[`${item.locationName}:${item.rowNumber}`] = v;
@@ -116,52 +115,52 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Zeilen anpassen</h2>
+        <h2 className="text-xl font-bold tracking-tight">Modify Rows</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Anpassungsregeln für {session.selectedMonth} definieren. Jede Zeile kann einen eigenen Standort haben.
+          Define adjustment rules for {session.selectedMonth}. Each rule can target a different location.
         </p>
       </div>
 
       {/* Legend */}
       <div className="rounded-md border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
-        <p><span className="font-semibold text-foreground">Divisor = 0:</span> Neuer Wert wird <span className="font-semibold text-foreground">nur beim gewählten Standort</span> in diese Zeile geschrieben.</p>
-        <p><span className="font-semibold text-foreground">Divisor &gt; 0:</span> Neuer Wert wird bei <span className="font-semibold text-foreground">allen Standorten</span> in diese Zeile geschrieben.</p>
+        <p><span className="font-semibold text-foreground">Divisor = 0:</span> The new value is written <span className="font-semibold text-foreground">only to the selected location</span>.</p>
+        <p><span className="font-semibold text-foreground">Divisor &gt; 0:</span> The new value is written to <span className="font-semibold text-foreground">all locations</span>.</p>
       </div>
 
       <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
         <div className="bg-muted/40 p-4 border-b flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm font-semibold text-foreground">
             <Calculator className="w-4 h-4 text-muted-foreground" />
-            <span>Anpassungsregeln</span>
+            <span>Adjustment rules</span>
           </div>
           <Button onClick={addRow} size="sm" variant="secondary" className="h-8">
             <Plus className="w-4 h-4 mr-1" />
-            Zeile hinzufügen
+            Add rule
           </Button>
         </div>
 
         {rows.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground bg-muted/10">
-            Keine Regeln konfiguriert. Klicke auf "Zeile hinzufügen" oder überspringe diesen Schritt.
+            No rules configured. Click "Add rule" or skip this step.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="min-w-[190px]">Standort</TableHead>
-                  <TableHead className="min-w-[90px]">Zeile</TableHead>
+                  <TableHead className="min-w-[190px]">Location</TableHead>
+                  <TableHead className="min-w-[90px]">Row</TableHead>
                   <TableHead className="min-w-[80px]">+/−</TableHead>
                   <TableHead className="min-w-[100px]">Hours Adj.</TableHead>
                   <TableHead className="min-w-[100px]">EFTE Adj.</TableHead>
                   <TableHead className="min-w-[100px]">
                     <span>Divisor</span>
-                    <span className="block text-[10px] font-normal text-muted-foreground leading-tight">0 = nur Standort</span>
+                    <span className="block text-[10px] font-normal text-muted-foreground leading-tight">0 = own location</span>
                   </TableHead>
-                  <TableHead className="bg-blue-50/60 border-l text-blue-700/80 text-xs whitespace-nowrap">Ist Hours</TableHead>
-                  <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Ist EFTE</TableHead>
-                  <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">Hours neu</TableHead>
-                  <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">EFTE neu</TableHead>
+                  <TableHead className="bg-blue-50/60 border-l text-blue-700/80 text-xs whitespace-nowrap">Cur. Hours</TableHead>
+                  <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
+                  <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
+                  <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">New EFTE</TableHead>
                   <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -175,14 +174,14 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
 
                   return (
                     <TableRow key={index} className={isAllLocations ? "bg-amber-50/30" : ""}>
-                      {/* Standort per row */}
+                      {/* Location */}
                       <TableCell>
                         <Select
                           value={row.locationName || ""}
                           onValueChange={(val) => updateRow(index, "locationName", val)}
                         >
                           <SelectTrigger className="text-xs min-w-[170px]">
-                            <SelectValue placeholder="Standort wählen…" />
+                            <SelectValue placeholder="Select location…" />
                           </SelectTrigger>
                           <SelectContent>
                             {locations.map((loc) => (
@@ -264,32 +263,32 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                             className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                           <p className={`text-[10px] leading-tight font-medium ${isAllLocations ? "text-amber-600" : "text-blue-600"}`}>
-                            {isAllLocations ? "alle Standorte" : "nur Standort"}
+                            {isAllLocations ? "all locations" : "own location"}
                           </p>
                         </div>
                       </TableCell>
 
-                      {/* Ist Hours */}
+                      {/* Current Hours */}
                       <TableCell className="bg-blue-50/60 border-l align-middle text-xs font-mono text-blue-800 whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(cv?.hours)}
                       </TableCell>
 
-                      {/* Ist EFTE */}
+                      {/* Current EFTE */}
                       <TableCell className="bg-blue-50/60 align-middle text-xs font-mono text-blue-800 whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(cv?.efte)}
                       </TableCell>
 
-                      {/* Hours neu */}
+                      {/* New Hours */}
                       <TableCell className="bg-primary/5 border-l align-middle text-xs font-mono font-semibold text-primary whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(newHours)}
                       </TableCell>
 
-                      {/* EFTE neu */}
+                      {/* New EFTE */}
                       <TableCell className="bg-primary/5 align-middle text-xs font-mono font-semibold text-primary whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(newEfte)}
                       </TableCell>
 
-                      {/* Delete */}
+                      {/* Remove */}
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -311,10 +310,10 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
 
       <div className="pt-6 flex justify-between border-t">
         <Button variant="outline" onClick={onBack} size="lg">
-          Zurück
+          Back
         </Button>
         <Button onClick={handleNext} disabled={isPending} size="lg" className="min-w-32 shadow-sm font-semibold">
-          {isPending ? "Speichern…" : "Weiter"}
+          {isPending ? "Saving…" : "Next"}
         </Button>
       </div>
     </div>

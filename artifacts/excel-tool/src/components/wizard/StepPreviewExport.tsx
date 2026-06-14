@@ -40,9 +40,9 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Vorschau & Export</h2>
+          <h2 className="text-xl font-bold tracking-tight">Preview & Export</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Änderungen prüfen bevor die Master-Excel-Datei erstellt wird.
+            Review all changes before the master Excel file is created.
           </p>
         </div>
       </div>
@@ -50,9 +50,9 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
       {isPreviewError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Vorschau fehlgeschlagen</AlertTitle>
+          <AlertTitle>Preview failed</AlertTitle>
           <AlertDescription>
-            Vorschau konnte nicht geladen werden. Bitte sicherstellen, dass die konfigurierten Zeilen in den Dateien vorhanden sind.
+            Could not load the preview. Please ensure the configured rows exist in the uploaded files.
           </AlertDescription>
         </Alert>
       )}
@@ -70,8 +70,8 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
           {!hasChanges && (
             <Alert>
               <CheckCircle2 className="h-4 w-4" />
-              <AlertTitle>Keine Änderungen</AlertTitle>
-              <AlertDescription>Es wurden keine Zeilen zum Löschen oder Anpassen konfiguriert.</AlertDescription>
+              <AlertTitle>No changes</AlertTitle>
+              <AlertDescription>No rows have been configured for deletion or adjustment.</AlertDescription>
             </Alert>
           )}
 
@@ -79,16 +79,16 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
             <div className="border rounded-lg overflow-hidden shadow-sm">
               <div className="bg-red-50/60 px-4 py-3 border-b flex items-center gap-2">
                 <FileText className="w-4 h-4 text-red-500" />
-                <span className="text-sm font-semibold text-red-700">Zeilen die gelöscht werden</span>
+                <span className="text-sm font-semibold text-red-700">Rows to be deleted</span>
               </div>
               <ScrollArea className="max-h-60">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/20">
-                      <TableHead className="text-xs">Zeile</TableHead>
-                      <TableHead className="text-xs">Standort</TableHead>
-                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Ist Hours</TableHead>
-                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Ist EFTE</TableHead>
+                      <TableHead className="text-xs">Row</TableHead>
+                      <TableHead className="text-xs">Location</TableHead>
+                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Cur. Hours</TableHead>
+                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Cur. EFTE</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -114,18 +114,18 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
             <div className="border rounded-lg overflow-hidden shadow-sm">
               <div className="bg-blue-50/60 px-4 py-3 border-b flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-semibold text-blue-700">Zeilen die angepasst werden</span>
+                <span className="text-sm font-semibold text-blue-700">Rows to be adjusted</span>
               </div>
               <ScrollArea className="max-h-72">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/20">
-                      <TableHead className="text-xs">Zeile</TableHead>
-                      <TableHead className="text-xs">Standort</TableHead>
-                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Ist Hours</TableHead>
-                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Ist EFTE</TableHead>
-                      <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">Hours neu</TableHead>
-                      <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">EFTE neu</TableHead>
+                      <TableHead className="text-xs">Row</TableHead>
+                      <TableHead className="text-xs">Location</TableHead>
+                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Cur. Hours</TableHead>
+                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Cur. EFTE</TableHead>
+                      <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">New Hours</TableHead>
+                      <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">New EFTE</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -157,7 +157,7 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
 
       <div className="pt-4 flex justify-between border-t">
         <Button variant="outline" onClick={onBack} size="lg">
-          Zurück
+          Back
         </Button>
         <Button
           onClick={handleExport}
@@ -166,11 +166,11 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
           className="min-w-48 shadow-md font-semibold"
         >
           {isExporting ? (
-            "Wird erstellt…"
+            "Generating…"
           ) : (
             <>
               <Download className="mr-2 h-4 w-4" />
-              Anwenden & Herunterladen
+              Apply & Download
             </>
           )}
         </Button>

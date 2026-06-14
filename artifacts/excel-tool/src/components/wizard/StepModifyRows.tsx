@@ -148,7 +148,6 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="min-w-[180px]">Remarks</TableHead>
                   <TableHead className="min-w-[190px]">Location</TableHead>
                   <TableHead className="min-w-[90px]">Row</TableHead>
                   <TableHead className="min-w-[80px]">+/−</TableHead>
@@ -162,6 +161,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
                   <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
                   <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">New EFTE</TableHead>
+                  <TableHead className="min-w-[180px]">Remarks</TableHead>
                   <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -175,17 +175,6 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
 
                   return (
                     <TableRow key={index} className={isAllLocations ? "bg-amber-50/30" : ""}>
-                      {/* Remarks */}
-                      <TableCell>
-                        <Input
-                          type="text"
-                          value={row.remarks ?? ""}
-                          onChange={(e) => updateRow(index, "remarks", e.target.value)}
-                          className="w-full text-xs"
-                          placeholder="Optional remark…"
-                        />
-                      </TableCell>
-
                       {/* Location */}
                       <TableCell>
                         <Select
@@ -298,6 +287,17 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                       {/* New EFTE */}
                       <TableCell className="bg-primary/5 align-middle text-xs font-mono font-semibold text-primary whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(newEfte)}
+                      </TableCell>
+
+                      {/* Remarks */}
+                      <TableCell>
+                        <Input
+                          type="text"
+                          value={row.remarks ?? ""}
+                          onChange={(e) => updateRow(index, "remarks", e.target.value)}
+                          className="w-full text-xs"
+                          placeholder="Optional remark…"
+                        />
                       </TableCell>
 
                       {/* Remove */}

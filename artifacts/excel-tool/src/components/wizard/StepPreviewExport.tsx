@@ -126,7 +126,7 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
                 <FileText className="w-4 h-4 text-blue-500" />
                 <span className="text-sm font-semibold text-blue-700">Rows to be adjusted</span>
               </div>
-              <ScrollArea className="max-h-72">
+              <ScrollArea className="max-h-[480px]">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/20">

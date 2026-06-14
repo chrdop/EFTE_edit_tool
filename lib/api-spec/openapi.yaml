@@ -1,36 +1,317 @@
-openapi: 3.1.0
+openapi: "3.1.0"
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: "1.0.0"
 servers:
   - url: /api
-    description: Base API path
-tags:
-  - name: health
-    description: Health operations
+
 paths:
   /healthz:
     get:
-      operationId: healthCheck
-      tags: [health]
+      operationId: getHealth
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
-          description: Healthy
+          description: OK
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /sessions:
+    post:
+      operationId: createSession
+      summary: Create a new processing session
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /sessions/{sessionId}:
+    get:
+      operationId: getSession
+      summary: Get session state
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateSession
+      summary: Update session configuration (month, delete rows, modify rows)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionUpdate"
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: Not found
+
+  /sessions/{sessionId}/upload:
+    post:
+      operationId: uploadFiles
+      summary: Upload Excel files to the session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/FileUploadInput"
+      responses:
+        "200":
+          description: Files uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+
+  /sessions/{sessionId}/preview:
+    post:
+      operationId: previewChanges
+      summary: Preview delete and modify changes before applying
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Preview result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreviewResult"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+
+  /sessions/{sessionId}/export:
+    post:
+      operationId: exportSession
+      summary: Apply all changes and prepare the Excel file for download
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportResult"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+
+  /sessions/{sessionId}/download:
+    get:
+      operationId: downloadSession
+      summary: Download the processed master Excel file
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Excel file download
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    FileUploadInput:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: array
+          items:
+            type: string
+
+    UploadedFile:
+      type: object
+      required: [id, originalName, sheetNames, detectedMonths]
+      properties:
+        id:
+          type: string
+        originalName:
+          type: string
+        sheetNames:
+          type: array
+          items:
+            type: string
+        detectedMonths:
+          type: array
+          items:
+            type: string
+
+    DeleteRowConfig:
+      type: object
+      required: [rowNumber]
+      properties:
+        rowNumber:
+          type: integer
+
+    ModifyRowConfig:
+      type: object
+      required: [rowNumber, hoursAdjustment, efteAdjustment, divisor, plusMinus]
+      properties:
+        rowNumber:
+          type: integer
+        plusMinus:
+          type: string
+          enum: ["+", "-"]
+        hoursAdjustment:
+          type: number
+        efteAdjustment:
+          type: number
+        divisor:
+          type: number
+
+    Session:
+      type: object
+      required: [id, files, selectedMonth, deleteRows, modifyRows, status]
+      properties:
+        id:
+          type: string
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/UploadedFile"
+        selectedMonth:
+          type: ["string", "null"]
+        deleteRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeleteRowConfig"
+        modifyRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModifyRowConfig"
+        status:
+          type: string
+          enum: [empty, uploaded, configured, exported]
+
+    SessionUpdate:
+      type: object
+      properties:
+        selectedMonth:
+          type: ["string", "null"]
+        deleteRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeleteRowConfig"
+        modifyRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModifyRowConfig"
+
+    PreviewDeleteRow:
+      type: object
+      required: [rowNumber, sheetName]
+      properties:
+        rowNumber:
+          type: integer
+        sheetName:
+          type: string
+        currentHours:
+          type: ["number", "null"]
+        currentEfte:
+          type: ["number", "null"]
+
+    PreviewModifyRow:
+      type: object
+      required: [rowNumber, sheetName, newHours, newEfte]
+      properties:
+        rowNumber:
+          type: integer
+        sheetName:
+          type: string
+        currentHours:
+          type: ["number", "null"]
+        currentEfte:
+          type: ["number", "null"]
+        newHours:
+          type: ["number", "null"]
+        newEfte:
+          type: ["number", "null"]
+
+    PreviewResult:
+      type: object
+      required: [deletePreview, modifyPreview]
+      properties:
+        deletePreview:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreviewDeleteRow"
+        modifyPreview:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreviewModifyRow"
+
+    ExportResult:
+      type: object
+      required: [downloadUrl, filename]
+      properties:
+        downloadUrl:
+          type: string
+        filename:
+          type: string

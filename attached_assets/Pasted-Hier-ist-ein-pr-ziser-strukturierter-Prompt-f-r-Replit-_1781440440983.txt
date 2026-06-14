@@ -1,0 +1,47 @@
+Hier ist ein präziser, strukturierter Prompt für Replit:
+
+---
+
+**Prompt für Replit:**
+
+Erstelle eine Web-App (Python Backend mit Flask + Frontend mit HTML/JS, oder alternativ Streamlit), die Excel-Dateien zu einer Auswertung zusammenführt und bearbeitet. Verwende `openpyxl` zur Excel-Verarbeitung, damit Formatierung, Struktur und Formeln der Originaldateien **nicht verändert** werden.
+
+**Anforderungen:**
+
+**Step 1 – Upload & Zusammenführung**
+- Baue eine **Drag-and-Drop-Zone**, in die der User bis zu 10 "Standort-Excelsheets" hochladen kann.
+- Alle Dateien haben identische Struktur und Aufbau (siehe Beispiel-Screenshot: Kopfzeilen mit Company/Hotel/Year/Month, ab Zeile 8/9 Kostenstellen mit Monatsspalten Januar–Dezember, je Monat zwei Spalten "Hours" und "EFTE").
+- Erzeuge daraus **eine** Excel-Datei `Master Cluster Austria EFTE.xlsx`, in der jedes hochgeladene Standort-Sheet als **eigenes Registerblatt (Worksheet)** erscheint. Struktur und Form jedes Blattes müssen unverändert bleiben, da die Datei später automatisiert weiterverarbeitet wird.
+
+**Step 2 – Monatsabfrage**
+- Zu Beginn fragt die App ab: **Welcher Monat wird ausgewertet?** (Dropdown Januar–Dezember).
+- Nur die Spalten dieses Monats (Hours + EFTE) sind relevant. Die App muss anhand der Kopfzeile (Zeile 8) die Spalten-Position des gewählten Monats automatisch ermitteln, da sich diese je Datei/Monat unterscheiden kann.
+
+**Step 3 – Bearbeitung (zwei Aktionen, flexibel konfigurierbar)**
+
+*Step 3a – Werte löschen:*
+- In allen Standort-Sheets sollen dieselben Zeilen im Auswertungsmonat geleert werden (z.B. "Zeile 38, Spalte des Monats").
+- Baue eine **konfigurierbare Liste von Lösch-Zeilennummern**, die fix hinterlegt werden kann, aber jederzeit **ergänzt, geändert oder gelöscht** werden kann (dynamische Eingabefelder, "+" zum Hinzufügen, "x" zum Entfernen).
+- Beim Anwenden werden in jedem Sheet die Hours- und EFTE-Zelle der angegebenen Zeilen im gewählten Monat auf leer/0 gesetzt.
+
+*Step 3b – Werte abändern:*
+- Für definierte Zeilen werden die aktuellen Werte (Hours + EFTE) aus dem gewählten Monat **eingelesen und angezeigt**.
+- Daneben Bearbeitungsfelder analog zum Beispielblatt: pro Zeile **Plus/Minus**, **HOUR-Anpassung**, **EFTE-Anpassung**, **Divisor**, sowie berechnete Felder **HOUR neu** und **EFTE neu**.
+- Berechnungslogik nach Beispiel: `HOUR neu = (eingelesener Hour − Eingabewert) / Divisor`, analog `EFTE neu = (eingelesener EFTE − Eingabewert) / Divisor`. (z.B. (784−100)/4 = 171).
+- Auch dieser Block muss **flexibel** sein: Zeilennummern können sich von Monat zu Monat ändern, daher dynamisch hinzufügbar/änderbar.
+
+**Wichtig zu Step 3:** Anzahl und Position der Zeilen variieren monatlich → keine Hardcodierung, sondern abfragbare/editierbare Konfiguration vor jeder Auswertung.
+
+**Step 4 – Zurückschreiben & Export**
+- Nach einer **Bestätigung** durch den User werden alle gelöschten und neu berechneten Werte in die jeweiligen Registerblätter der `Master Cluster Austria EFTE.xlsx` zurückgeschrieben.
+- Pro Monat werden typischerweise zwei Werte bearbeitet.
+- Die fertige Datei wird zum **Download** bereitgestellt – mit unveränderter Struktur/Formatierung der Einzelblätter.
+
+**Technische Hinweise:**
+- Excel mit `openpyxl` öffnen und speichern, um Formate/Formeln zu erhalten.
+- UI klar in Schritten (Wizard/Schritt-für-Schritt): Upload → Monat wählen → Lösch-Block konfigurieren → Änderungs-Block konfigurieren → Vorschau → Bestätigen & Download.
+- Eingelesene Werte vor dem Zurückschreiben in einer übersichtlichen Tabelle/Vorschau anzeigen.
+
+---
+
+Möchtest du, dass ich den Prompt noch um konkrete Zell-Mappings ergänze (z.B. dass Hours/EFTE eines Monats immer in zwei nebeneinanderliegenden Spalten stehen), damit Replit die Spaltenerkennung sicherer umsetzt?

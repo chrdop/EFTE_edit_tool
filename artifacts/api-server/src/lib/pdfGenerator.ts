@@ -17,9 +17,16 @@ interface PreviewModifyRow {
   remarks?: string | null;
 }
 
+interface SkippedLocation {
+  locationName: string;
+  fileName: string;
+  reason: string;
+}
+
 interface PreviewData {
   deletePreview: PreviewDeleteRow[];
   modifyPreview: PreviewModifyRow[];
+  skipped: SkippedLocation[];
 }
 
 function fmt(val: number | null | undefined): string {
@@ -120,6 +127,19 @@ export function generateReportPdf(
   }
 
   lines.push("");
+
+  // ── Skipped Locations ──────────────────────────────────────────────────
+  if (preview.skipped.length > 0) {
+    lines.push("SKIPPED LOCATIONS  (NOT modified — please check manually)");
+    lines.push(line("-"));
+    lines.push(`${col("Location", 30)}${col("File", 30)}Reason`);
+    lines.push(line("-"));
+    for (const s of preview.skipped) {
+      lines.push(`${col(s.locationName || "-", 30)}${col(s.fileName, 30)}${s.reason}`);
+    }
+    lines.push("");
+  }
+
   lines.push(line("="));
   lines.push("End of report");
 

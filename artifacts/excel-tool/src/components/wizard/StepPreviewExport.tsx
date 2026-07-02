@@ -55,6 +55,7 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
   const hasDeletes = previewData?.deletePreview && previewData.deletePreview.length > 0;
   const hasModifies = previewData?.modifyPreview && previewData.modifyPreview.length > 0;
   const hasChanges = hasDeletes || hasModifies;
+  const hasSkipped = previewData?.skipped && previewData.skipped.length > 0;
 
   return (
     <div className="space-y-6">
@@ -92,6 +93,26 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
               <CheckCircle2 className="h-4 w-4" />
               <AlertTitle>No changes</AlertTitle>
               <AlertDescription>No rows have been configured for deletion or adjustment.</AlertDescription>
+            </Alert>
+          )}
+
+          {hasSkipped && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{previewData!.skipped.length} location(s) skipped</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">
+                  These files were not modified because the month column could not be found in them.
+                  Please check the file layout before exporting.
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-xs">
+                  {previewData!.skipped.map((s, i) => (
+                    <li key={i}>
+                      <span className="font-semibold">{s.locationName || s.fileName}</span> ({s.fileName}) — {s.reason}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
             </Alert>
           )}
 

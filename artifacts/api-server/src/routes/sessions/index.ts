@@ -308,6 +308,9 @@ router.post("/sessions/:sessionId/export", async (req, res): Promise<void> => {
     session.modifyRows,
   );
   const pdfBuffer = await generateReportPdf(session, preview);
+  if (preview.skipped.length > 0) {
+    req.log.warn({ skipped: preview.skipped }, "Locations skipped during export: month column not found");
+  }
   const pdfFilename = `Change_Report_${session.selectedMonth}.txt`;
   const pdfPath = path.join(uploadsDir, `${params.data.sessionId}-report.txt`);
   fs.writeFileSync(pdfPath, pdfBuffer);

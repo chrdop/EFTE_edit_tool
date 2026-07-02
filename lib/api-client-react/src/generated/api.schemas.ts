@@ -93,9 +93,16 @@ export interface PreviewModifyRow {
   newEfte: number | null;
 }
 
+export interface SkippedLocation {
+  locationName: string;
+  fileName: string;
+  reason: string;
+}
+
 export interface PreviewResult {
   deletePreview: PreviewDeleteRow[];
   modifyPreview: PreviewModifyRow[];
+  skipped: SkippedLocation[];
 }
 
 export interface ReadValuesItem {
@@ -133,5 +140,13 @@ export interface EmailRequest {
 export interface EmailResult {
   success: boolean;
   message: string;
+}
+
+export interface LoginRequest {
+  password: string;
+}
+
+export interface LoginResult {
+  token: string;
 }
 

@@ -16,12 +16,17 @@ const MONTH_ALIASES: Record<string, string> = {
   "Jänner": "January",
 };
 
+// Case-insensitive lookup: uploaded files aren't guaranteed to use consistent
+// capitalization for month headers (e.g. "MAI", "mai"), so match on lowercase.
+const MONTH_LOOKUP: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const m of CANONICAL_MONTHS) map[m.toLowerCase()] = m;
+  for (const [alias, canonical] of Object.entries(MONTH_ALIASES)) map[alias.toLowerCase()] = canonical;
+  return map;
+})();
+
 function normalizeMonth(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (CANONICAL_MONTHS.includes(trimmed)) return trimmed;
-  const aliased = MONTH_ALIASES[trimmed];
-  if (aliased) return aliased;
-  return null;
+  return MONTH_LOOKUP[raw.trim().toLowerCase()] ?? null;
 }
 
 // Row/col in SheetJS are 0-based; user-facing row numbers are 1-based.
@@ -48,11 +53,16 @@ interface MonthCols {
   efteCol0: number;
 }
 
+// Header block position drifts a bit between location templates (extra/missing
+// metadata rows). Scan a generous window near the top instead of a fixed 7-10,
+// so a slightly different layout doesn't cause the whole file to be skipped.
+const HEADER_SCAN_ROW_START = 1;
+const HEADER_SCAN_ROW_END = 20;
+
 function findMonthCols(ws: XLSX.WorkSheet, month: string): MonthCols | null {
   const range = XLSX.utils.decode_range(ws["!ref"] ?? "A1:A1");
 
-  // Scan rows 7–10 (1-based) for the month header
-  for (let row1 = 7; row1 <= 10; row1++) {
+  for (let row1 = HEADER_SCAN_ROW_START; row1 <= HEADER_SCAN_ROW_END; row1++) {
     let monthStartCol0 = -1;
     for (let c = range.s.c; c <= range.e.c; c++) {
       const cell = ws[XLSX.utils.encode_cell({ r: row1 - 1, c })];
@@ -64,16 +74,21 @@ function findMonthCols(ws: XLSX.WorkSheet, month: string): MonthCols | null {
     if (monthStartCol0 === -1) continue;
 
     // Look at the sub-header row (row1 + 1) for "Hours" / "EFTE" labels
-    let hoursCol0 = monthStartCol0;
-    let efteCol0 = monthStartCol0 + 1;
+    let hoursCol0 = -1;
+    let efteCol0 = -1;
 
     const subRow1 = row1 + 1;
     for (let c = monthStartCol0; c <= monthStartCol0 + 3; c++) {
       const cell = ws[XLSX.utils.encode_cell({ r: subRow1 - 1, c })];
       const label = String(cell?.v ?? "").toLowerCase();
-      if (label.includes("hour") || label.includes("stund")) hoursCol0 = c;
-      if (label.includes("efte") || label.includes("fte")) efteCol0 = c;
+      if (hoursCol0 === -1 && (label.includes("hour") || label.includes("stund"))) hoursCol0 = c;
+      if (efteCol0 === -1 && (label.includes("efte") || label.includes("fte"))) efteCol0 = c;
     }
+
+    // A metadata cell elsewhere in the sheet (e.g. "Month: Mai") also contains
+    // the month name but isn't the per-month table header — only accept this
+    // row if the row right below it actually has Hours/EFTE labels.
+    if (hoursCol0 === -1 || efteCol0 === -1) continue;
 
     return { hoursCol0, efteCol0 };
   }
@@ -107,7 +122,7 @@ export async function analyzeExcelFile(filePath: string): Promise<{
     }
 
     const range = XLSX.utils.decode_range(ws["!ref"]);
-    for (let row1 = 7; row1 <= 10; row1++) {
+    for (let row1 = HEADER_SCAN_ROW_START; row1 <= HEADER_SCAN_ROW_END; row1++) {
       if (row1 - 1 > range.e.r) break;
       for (let c = range.s.c; c <= range.e.c; c++) {
         const cell = ws[XLSX.utils.encode_cell({ r: row1 - 1, c })];
@@ -203,6 +218,12 @@ export interface PreviewModifyRow {
   remarks?: string;
 }
 
+export interface SkippedLocation {
+  locationName: string;
+  fileName: string;
+  reason: string;
+}
+
 function calcNew(current: number | null, adjustment: number, plusMinus: "+" | "-", divisor: number): number | null {
   if (current === null) return null;
   const adjusted = plusMinus === "-" ? current - adjustment : current + adjustment;
@@ -265,21 +286,24 @@ export async function previewChanges(
   month: string,
   deleteRows: DeleteRowConfig[],
   modifyRows: ModifyRowConfig[],
-): Promise<{ deletePreview: PreviewDeleteRow[]; modifyPreview: PreviewModifyRow[] }> {
+): Promise<{ deletePreview: PreviewDeleteRow[]; modifyPreview: PreviewModifyRow[]; skipped: SkippedLocation[] }> {
   const deletePreview: PreviewDeleteRow[] = [];
   const modifyPreview: PreviewModifyRow[] = [];
+  const skipped: SkippedLocation[] = [];
 
   // Pre-compute new values from the source location for all-locations rules
   const sourceValues = precomputeSourceValues(files, month, modifyRows);
 
   for (const file of files) {
     const workbook = XLSX.readFile(file.filePath, { cellStyles: true, cellFormula: true });
+    let matchedAnySheet = false;
 
     for (const sheetName of workbook.SheetNames) {
       const ws = workbook.Sheets[sheetName];
       if (!ws) continue;
       const cols = findMonthCols(ws, month);
       if (!cols) continue;
+      matchedAnySheet = true;
 
       for (const dr of deleteRows) {
         deletePreview.push({
@@ -325,9 +349,17 @@ export async function previewChanges(
         });
       }
     }
+
+    if (!matchedAnySheet && (deleteRows.length > 0 || modifyRows.length > 0)) {
+      skipped.push({
+        locationName: file.locationName,
+        fileName: file.originalName,
+        reason: `Monatsspalte "${month}" wurde in keinem Tabellenblatt gefunden.`,
+      });
+    }
   }
 
-  return { deletePreview, modifyPreview };
+  return { deletePreview, modifyPreview, skipped };
 }
 
 export async function buildMasterExcel(
@@ -336,8 +368,9 @@ export async function buildMasterExcel(
   deleteRows: DeleteRowConfig[],
   modifyRows: ModifyRowConfig[],
   outputPath: string,
-): Promise<void> {
+): Promise<{ skipped: SkippedLocation[] }> {
   const masterWorkbook = XLSX.utils.book_new();
+  const skipped: SkippedLocation[] = [];
 
   // Pre-compute new values from source locations for all-locations rules
   const sourceValues = precomputeSourceValues(files, month, modifyRows);
@@ -352,6 +385,8 @@ export async function buildMasterExcel(
       sheetStubs: true,
     });
 
+    let matchedAnySheet = false;
+
     for (const sheetName of sourceWorkbook.SheetNames) {
       const sourceWs = sourceWorkbook.Sheets[sheetName];
       if (!sourceWs) continue;
@@ -362,6 +397,7 @@ export async function buildMasterExcel(
       // Apply changes
       const cols = findMonthCols(targetWs, month);
       if (cols) {
+        matchedAnySheet = true;
         // Delete rows: clear Hours and EFTE cells
         for (const dr of deleteRows) {
           const hoursAddr = cellAddr(dr.rowNumber, cols.hoursCol0);
@@ -424,7 +460,17 @@ export async function buildMasterExcel(
 
       XLSX.utils.book_append_sheet(masterWorkbook, targetWs, uniqueName);
     }
+
+    if (!matchedAnySheet && (deleteRows.length > 0 || modifyRows.length > 0)) {
+      skipped.push({
+        locationName: file.locationName,
+        fileName: file.originalName,
+        reason: `Monatsspalte "${month}" wurde in keinem Tabellenblatt gefunden.`,
+      });
+    }
   }
 
   XLSX.writeFile(masterWorkbook, outputPath, { bookType: "xlsx", cellStyles: true });
+
+  return { skipped };
 }

@@ -8,6 +8,18 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Verify the app password and receive an auth token
+ */
+export const LoginBody = zod.object({
+  "password": zod.string()
+})
+
+export const LoginResponse = zod.object({
+  "token": zod.string()
+})
+
+
+/**
  * @summary Health check
  */
 export const GetHealthResponse = zod.object({
@@ -180,6 +192,11 @@ export const PreviewChangesResponse = zod.object({
   "currentEfte": zod.number().nullish(),
   "newHours": zod.number().nullable(),
   "newEfte": zod.number().nullable()
+})),
+  "skipped": zod.array(zod.object({
+  "locationName": zod.string(),
+  "fileName": zod.string(),
+  "reason": zod.string()
 }))
 })
 

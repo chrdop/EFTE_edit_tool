@@ -382,9 +382,20 @@ components:
         newEfte:
           type: ["number", "null"]
 
+    SkippedLocation:
+      type: object
+      required: [locationName, fileName, reason]
+      properties:
+        locationName:
+          type: string
+        fileName:
+          type: string
+        reason:
+          type: string
+
     PreviewResult:
       type: object
-      required: [deletePreview, modifyPreview]
+      required: [deletePreview, modifyPreview, skipped]
       properties:
         deletePreview:
           type: array
@@ -394,6 +405,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PreviewModifyRow"
+        skipped:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkippedLocation"
 
     ReadValuesItem:
       type: object

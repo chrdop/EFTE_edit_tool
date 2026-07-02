@@ -6,8 +6,10 @@
  */
 import type { PreviewDeleteRow } from './previewDeleteRow';
 import type { PreviewModifyRow } from './previewModifyRow';
+import type { SkippedLocation } from './skippedLocation';
 
 export interface PreviewResult {
   deletePreview: PreviewDeleteRow[];
   modifyPreview: PreviewModifyRow[];
+  skipped: SkippedLocation[];
 }

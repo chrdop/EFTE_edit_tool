@@ -1,0 +1,1 @@
+- [Auth token quirks in mixed fetch/generated-client apps](auth-fetch-quirks.md) — raw fetch() calls silently skip the Authorization header the generated API client auto-attaches.

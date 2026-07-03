@@ -1,21 +1,32 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Session, usePreviewChanges, useExportSession } from "@workspace/api-client-react";
-import { Download, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
+import { Download, AlertCircle, FileText, CheckCircle2, LogOut, RotateCcw } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface StepPreviewExportProps {
   session: Session;
   sessionId: string;
   onBack: () => void;
+  onStartNewSession: () => void;
+  onLogout: () => void;
 }
 
-export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExportProps) {
+export function StepPreviewExport({ session, sessionId, onBack, onStartNewSession, onLogout }: StepPreviewExportProps) {
   const { mutate: fetchPreview, data: previewData, isPending: isPreviewLoading, isError: isPreviewError } = usePreviewChanges();
   const { mutate: exportSession, isPending: isExporting } = useExportSession();
+  const [exportedFiles, setExportedFiles] = useState<{ filename: string; pdfFilename: string } | null>(null);
 
   useEffect(() => {
     fetchPreview({ sessionId });
@@ -47,6 +58,7 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
           setTimeout(() => {
             void authenticatedDownload(data.pdfUrl, data.pdfFilename);
           }, 400);
+          setExportedFiles({ filename: data.filename, pdfFilename: data.pdfFilename });
         },
       },
     );
@@ -216,6 +228,38 @@ export function StepPreviewExport({ session, sessionId, onBack }: StepPreviewExp
           )}
         </Button>
       </div>
+
+      <Dialog open={exportedFiles !== null} onOpenChange={(open) => !open && setExportedFiles(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              Export complete
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2 pt-2">
+                <p>Both files have been created and downloaded:</p>
+                <ul className="list-disc pl-5 space-y-0.5">
+                  <li className="font-mono text-xs">{exportedFiles?.filename}</li>
+                  <li className="font-mono text-xs">{exportedFiles?.pdfFilename}</li>
+                </ul>
+                <p>You'll find them in your browser's "Downloads" folder.</p>
+                <p className="pt-2 font-medium text-foreground">What would you like to do next?</p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={onLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
+            </Button>
+            <Button onClick={onStartNewSession}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Start new session
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

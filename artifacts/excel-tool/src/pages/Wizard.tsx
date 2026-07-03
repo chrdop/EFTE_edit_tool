@@ -8,6 +8,7 @@ import { StepModifyRows } from "@/components/wizard/StepModifyRows";
 import { StepPreviewExport } from "@/components/wizard/StepPreviewExport";
 import { Loader2, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AUTH_TOKEN_KEY } from "@/pages/Login";
 
 export function Wizard() {
   const { session, sessionId, isLoading, refreshSession, resetSession } = useWizardSession();
@@ -41,6 +42,16 @@ export function Wizard() {
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 5));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
+  const startNewSession = () => {
+    resetSession();
+    setCurrentStep(1);
+  };
+
+  const logout = () => {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <header className="bg-card border-b sticky top-0 z-20">
@@ -51,7 +62,7 @@ export function Wizard() {
             </div>
             <h1 className="font-bold text-lg tracking-tight text-foreground">EFTE Merge & Edit Tool</h1>
           </div>
-          <Button variant="ghost" size="sm" onClick={resetSession} className="text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" onClick={startNewSession} className="text-muted-foreground hover:text-foreground">
             <RefreshCcw className="mr-2 h-4 w-4" />
             New Session
           </Button>
@@ -75,7 +86,13 @@ export function Wizard() {
             <StepModifyRows session={session} sessionId={sessionId} onNext={nextStep} onBack={prevStep} refreshSession={refreshSession} />
           )}
           {currentStep === 5 && (
-            <StepPreviewExport session={session} sessionId={sessionId} onBack={prevStep} />
+            <StepPreviewExport
+              session={session}
+              sessionId={sessionId}
+              onBack={prevStep}
+              onStartNewSession={startNewSession}
+              onLogout={logout}
+            />
           )}
         </div>
       </main>

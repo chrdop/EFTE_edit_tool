@@ -66,6 +66,11 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    // Replit's infra proxies /api to the api-server in prod; replicate that
+    // for local dev so the frontend can reach it directly via `vite dev`.
+    proxy: process.env.API_PROXY_TARGET
+      ? { "/api": { target: process.env.API_PROXY_TARGET, changeOrigin: true } }
+      : undefined,
   },
   preview: {
     port,

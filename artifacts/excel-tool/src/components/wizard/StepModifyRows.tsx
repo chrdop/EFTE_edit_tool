@@ -5,6 +5,7 @@ import { Session, useUpdateSession, ModifyRowConfig, ModifyRowConfigPlusMinus } 
 import { Plus, X, Calculator } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EfteCalculatorBlock } from "@/components/wizard/EfteCalculatorBlock";
 
 interface RowCurrentValue {
   rowNumber: number;
@@ -130,6 +131,8 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
         <p><span className="font-semibold text-foreground">Divisor = 0:</span> The new value is written <span className="font-semibold text-foreground">only to the selected location</span>.</p>
         <p><span className="font-semibold text-foreground">Divisor &gt; 0:</span> The new value is written to <span className="font-semibold text-foreground">all locations</span>.</p>
       </div>
+
+      <EfteCalculatorBlock />
 
       <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
         <div className="bg-muted/40 p-4 border-b flex items-center justify-between">

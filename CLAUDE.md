@@ -31,9 +31,11 @@ Required env for the API server: `APP_PASSWORD` (the app's own login password). 
 
 ## How auth works
 
-Single shared password, not per-user accounts: `POST /api/auth/login` checks `APP_PASSWORD` and returns a bearer token (`artifacts/api-server/src/routes/auth/index.ts`). The frontend stores it in `localStorage` as `app_auth_token` (constant `AUTH_TOKEN_KEY` in `pages/Login.tsx`) and sends it as `Authorization: Bearer <token>`. Tokens are in-memory only (`middleware/auth.js`) — they're invalidated on every server restart.
+Single shared password, not per-user accounts: `POST /api/auth/login` checks `APP_PASSWORD` and returns a bearer token (`artifacts/api-server/src/routes/auth/index.ts`). The frontend stores it in `localStorage` as `app_auth_token` (constant `AUTH_TOKEN_KEY` in `pages/Login.tsx`) and sends it as `Authorization: Bearer <token>`. Tokens are in-memory only (`middleware/auth.js`) — they're invalidated on every server restart, and rotating `APP_PASSWORD` does not retroactively affect an already-published deployment; it must be redeployed for the new value to take effect in production.
 
 This is a separate layer from Replit's own deployment-level **Visibility** setting (Public / Password protected / Private, configured in Replit's "Publishing" panel). Don't confuse the two when debugging access issues.
+
+**Auth headers are only automatic through the generated client.** `main.tsx` wires `setAuthTokenGetter(() => localStorage.getItem(AUTH_TOKEN_KEY))` so hooks from `@workspace/api-client-react` attach the bearer token automatically. But `StepUploadFiles.tsx` (file upload), `StepModifyRows.tsx` (`read-values`), and `StepPreviewExport.tsx` (file download) use hand-rolled `fetch()` calls instead — typical for `FormData`/blob bodies that codegen doesn't cover well — and each has to read `localStorage.getItem("app_auth_token")` and attach `Authorization: Bearer <token>` manually. If you add a new raw `fetch()` call, don't forget this: a missing header here 401s silently and looks like a normal network failure, not an auth error. It also won't trigger the app's global 401 handler (`App.tsx`'s query/mutation cache subscriptions, which force a logout+reload) since that only observes requests made through react-query — a raw `fetch()`'s 401 just surfaces as a local "upload/download failed" error in that component.
 
 ## Excel processing gotchas
 

@@ -11,7 +11,7 @@ Running handoff notes across sessions — what's done, what's open, where to pic
   3. Sum row uses the same background (`bg-amber-50/30`) as the Reference row.
 - Verified in the browser (login → upload → wizard → Modify Rows): 3 default rows, Sum = 367 / 3,1 for the example data, computed background of Sum row identical to Reference row, no console errors.
 - Committed and pushed (`2523423`) — code only; `Bugs/` intentionally left out of git again.
-- Replit workspace synced (`git pull --rebase origin main`) and the user confirmed "Test OK" afterwards. Not stated whether that was the live site or the dev preview, and no "Published your App" checkpoint commit has shown up on GitHub since — so a Republish of Mod 2 is unconfirmed.
+- Replit workspace synced (`git pull --rebase origin main`), user confirmed "Test OK", and later confirmed the Republish was done. (No "Published your App" checkpoint commit had appeared on GitHub at that point — going by the user's word.)
 
 **Open / not done:**
 - **Reference row's "Holiday hours" input no longer affects anything** now that the Sum excludes the Reference row (it never fed the EFTE formula either). Keep, remove, or give it a role? Not asked, so left as is.

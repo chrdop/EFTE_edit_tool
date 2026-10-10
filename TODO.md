@@ -12,11 +12,11 @@ Running handoff notes across sessions — what's done, what's open, where to pic
 - Verified in the browser (login → upload → wizard → Modify Rows): 3 default rows, Sum = 367 / 3,1 for the example data, computed background of Sum row identical to Reference row, no console errors.
 - Committed and pushed (`2523423`) — code only; `Bugs/` intentionally left out of git again.
 - Replit workspace synced (`git pull --rebase origin main`), user confirmed "Test OK", and later confirmed the Republish was done. (No "Published your App" checkpoint commit had appeared on GitHub at that point — going by the user's word.)
+- Added `Bugs/` (the running folder of `.odt` request documents, `ModnBug.odt`, `ModnBug2.odt`) to `.gitignore`, so it no longer shows up as untracked.
 
 **Open / not done:**
 - **Reference row's "Holiday hours" input no longer affects anything** now that the Sum excludes the Reference row (it never fed the EFTE formula either). Keep, remove, or give it a role? Not asked, so left as is.
 - Sum EFTE shows `3,1`, not `3,10` (the formatter drops trailing zeros); `ModnBug.odt` showed two decimals. Cosmetic — ask if fixed two decimals are wanted.
-- `Bugs/` now holds `ModnBug.odt` and `ModnBug2.odt` (plus LibreOffice lock files while open) and keeps showing as untracked. It is clearly a running requests folder; decide whether to add it to `.gitignore`.
 - A `hotel-design-gold` skill (gold/black design for Christian's hotel webapps) is available. It was **not** applied today: the request was only to match one row colour, and the EFTE tool currently uses the default blue look. Open question whether the whole tool should adopt it.
 - Still deferred: **"Punkt 3"** (shared landing page linking the webapps). No automated tests exist.
 

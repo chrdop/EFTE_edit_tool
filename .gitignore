@@ -54,3 +54,6 @@ artifacts/api-server/uploads/*
 
 # Claude Code local tooling config (local dev server ports/secrets, machine-specific)
 .claude/
+
+# Local feature/bug request documents (.odt) - kept out of the repo
+Bugs/

@@ -11,9 +11,9 @@ Running handoff notes across sessions — what's done, what's open, where to pic
   3. Sum row uses the same background (`bg-amber-50/30`) as the Reference row.
 - Verified in the browser (login → upload → wizard → Modify Rows): 3 default rows, Sum = 367 / 3,1 for the example data, computed background of Sum row identical to Reference row, no console errors.
 - Committed and pushed (`2523423`) — code only; `Bugs/` intentionally left out of git again.
+- Replit workspace synced (`git pull --rebase origin main`), republished, and the user confirmed "Test OK" afterwards — calculator and Mod 2 changes are live.
 
 **Open / not done:**
-- **Live app not re-checked.** Nobody has confirmed yet that the Republish after the 2026-09-14 calculator and today's Mod 2 changes actually went through. Replit workspace needs `git pull --rebase origin main`, then Republish; then check `https://efte-merge-and-edit-tool.replit.app` (Modify Rows step).
 - **Reference row's "Holiday hours" input no longer affects anything** now that the Sum excludes the Reference row (it never fed the EFTE formula either). Keep, remove, or give it a role? Not asked, so left as is.
 - Sum EFTE shows `3,1`, not `3,10` (the formatter drops trailing zeros); `ModnBug.odt` showed two decimals. Cosmetic — ask if fixed two decimals are wanted.
 - `Bugs/` now holds `ModnBug.odt` and `ModnBug2.odt` (plus LibreOffice lock files while open) and keeps showing as untracked. It is clearly a running requests folder; decide whether to add it to `.gitignore`.
@@ -21,7 +21,6 @@ Running handoff notes across sessions — what's done, what's open, where to pic
 - Still deferred: **"Punkt 3"** (shared landing page linking the webapps). No automated tests exist.
 
 **Where to continue next session:**
-- Confirm the Republish worked and look at the calculator live.
 - Ask whether "Mod 3" or other `Bugs/` requests are waiting, and put the three small questions above (Reference holiday hours, decimals, gold design) to the user.
 
 ## 2026-09-14

@@ -40,8 +40,6 @@ export function EfteCalculatorBlock() {
     makeStaffRow("staff1"),
     makeStaffRow("staff2"),
     makeStaffRow("staff3"),
-    makeStaffRow("staff4"),
-    makeStaffRow("staff5"),
   ]);
 
   const addRow = () => setStaffRows([...staffRows, makeStaffRow(`staff${staffRows.length + 1}`)]);
@@ -52,12 +50,12 @@ export function EfteCalculatorBlock() {
 
   const staffEfteValues = staffRows.map((r) => calcStaffEfte(r, referenceWorkingHours, referenceEfte));
 
+  // Sums cover the staff rows only — the Reference row is excluded.
   const sumWorkingHours = round2(
-    referenceWorkingHours +
-      staffRows.reduce((sum, r) => sum + r.workingHours, 0) -
-      (referenceHolidayHours + staffRows.reduce((sum, r) => sum + r.holidayHours, 0)),
+    staffRows.reduce((sum, r) => sum + r.workingHours, 0) -
+      staffRows.reduce((sum, r) => sum + r.holidayHours, 0),
   );
-  const sumEfte = round2(referenceEfte + staffEfteValues.reduce((sum, v) => sum + v, 0));
+  const sumEfte = round2(staffEfteValues.reduce((sum, v) => sum + v, 0));
 
   return (
     <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
@@ -166,7 +164,7 @@ export function EfteCalculatorBlock() {
               </TableRow>
             ))}
 
-            <TableRow className="bg-muted/30 font-semibold">
+            <TableRow className="bg-amber-50/30 font-semibold">
               <TableCell className="text-xs">Sum</TableCell>
               <TableCell className="font-mono text-xs">{fmt(sumWorkingHours)}</TableCell>
               <TableCell></TableCell>

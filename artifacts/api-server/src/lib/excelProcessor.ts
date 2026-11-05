@@ -224,14 +224,28 @@ export interface SkippedLocation {
   reason: string;
 }
 
-function calcNew(current: number | null, adjustment: number, plusMinus: ModifyRowConfig["plusMinus"], divisor: number): number | null {
-  // "=" overwrites the cell with the entered value as-is: independent of the
-  // current value (even an empty cell) and not divided by the divisor.
-  if (plusMinus === "=") return adjustment;
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+/**
+ * divisor === 0 means "own location only". divisor > 0 means "all locations":
+ * the result is then divided by the number of uploaded locations (locationCount) —
+ * the divisor's own value is irrelevant beyond being > 0. This applies to every mode,
+ * including "=". For "own location" rules "=" writes the entered value as-is.
+ */
+function calcNew(
+  current: number | null,
+  adjustment: number,
+  plusMinus: ModifyRowConfig["plusMinus"],
+  divisor: number,
+  locationCount: number,
+): number | null {
+  const divideBy = divisor > 0 && locationCount > 0 ? locationCount : 0;
+  if (plusMinus === "=") return divideBy > 0 ? round2(adjustment / divideBy) : adjustment;
   if (current === null) return null;
   const adjusted = plusMinus === "-" ? current - adjustment : current + adjustment;
-  const result = divisor !== 0 ? adjusted / divisor : adjusted;
-  return Math.round(result * 100) / 100;
+  return round2(divideBy > 0 ? adjusted / divideBy : adjusted);
 }
 
 interface PrecomputedValue {
@@ -258,7 +272,10 @@ function precomputeSourceValues(
 
     // Overwrite rules don't depend on the source location's current values.
     if (mr.plusMinus === "=") {
-      map.set(key, { newHours: mr.hoursAdjustment, newEfte: mr.efteAdjustment });
+      map.set(key, {
+        newHours: calcNew(null, mr.hoursAdjustment, mr.plusMinus, mr.divisor, files.length),
+        newEfte: calcNew(null, mr.efteAdjustment, mr.plusMinus, mr.divisor, files.length),
+      });
       continue;
     }
 
@@ -278,8 +295,8 @@ function precomputeSourceValues(
       const sourceHours = getCellValue(ws, mr.rowNumber, cols.hoursCol0);
       const sourceEfte = getCellValue(ws, mr.rowNumber, cols.efteCol0);
       map.set(key, {
-        newHours: calcNew(sourceHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor),
-        newEfte: calcNew(sourceEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor),
+        newHours: calcNew(sourceHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor, files.length),
+        newEfte: calcNew(sourceEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor, files.length),
       });
       found = true;
       break;
@@ -342,8 +359,8 @@ export async function previewChanges(
           newEfte = pre?.newEfte ?? null;
         } else {
           // Single-location: compute from this file's own current value
-          newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor);
-          newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor);
+          newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor, files.length);
+          newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor, files.length);
         }
 
         modifyPreview.push({
@@ -438,8 +455,8 @@ export async function buildMasterExcel(
             // Single-location: compute from this file's own current value
             const currentHours = getCellValue(targetWs, mr.rowNumber, cols.hoursCol0);
             const currentEfte = getCellValue(targetWs, mr.rowNumber, cols.efteCol0);
-            newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor);
-            newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor);
+            newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor, files.length);
+            newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor, files.length);
           }
 
           if (newHours !== null) {

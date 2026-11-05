@@ -24,12 +24,24 @@ interface StepModifyRowsProps {
   refreshSession: () => void;
 }
 
-function calcNew(current: number | null, adj: number, plusMinus: ModifyRowConfigPlusMinus, divisor: number): number | null {
-  // "=" overwrites with the entered value as-is, regardless of the current value or divisor.
-  if (plusMinus === "=") return adj;
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+// Mirrors calcNew in api-server/src/lib/excelProcessor.ts — keep both in sync.
+// divisor 0 = own location; divisor > 0 = all locations, result divided by the number of locations.
+function calcNew(
+  current: number | null,
+  adj: number,
+  plusMinus: ModifyRowConfigPlusMinus,
+  divisor: number,
+  locationCount: number,
+): number | null {
+  const divideBy = divisor > 0 && locationCount > 0 ? locationCount : 0;
+  if (plusMinus === "=") return divideBy > 0 ? round2(adj / divideBy) : adj;
   if (current === null) return null;
   const adjusted = plusMinus === "-" ? current - adj : current + adj;
-  return divisor !== 0 ? Math.round((adjusted / divisor) * 100) / 100 : adjusted;
+  return round2(divideBy > 0 ? adjusted / divideBy : adjusted);
 }
 
 function fmt(v: number | null | undefined): string {
@@ -47,6 +59,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
   const { mutate: updateSession, isPending } = useUpdateSession();
 
   const locations = Array.from(new Set(session.files.map((f) => f.locationName).filter(Boolean)));
+  const locationCount = session.files.length;
 
   const fetchCurrentValues = useCallback(
     async (rowList: ModifyRowConfig[]) => {
@@ -130,10 +143,10 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
 
       {/* Legend */}
       <div className="rounded-md border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
-        <p><span className="font-semibold text-foreground">Divisor = 0:</span> The new value is written <span className="font-semibold text-foreground">only to the selected location</span>.</p>
-        <p><span className="font-semibold text-foreground">Divisor &gt; 0:</span> The new value is written to <span className="font-semibold text-foreground">all locations</span>.</p>
+        <p><span className="font-semibold text-foreground">Own location:</span> The new value is written <span className="font-semibold text-foreground">only to the selected location</span>.</p>
+        <p><span className="font-semibold text-foreground">All locations (÷ {locationCount}):</span> The new value is calculated from the selected location and <span className="font-semibold text-foreground">divided by the number of uploaded locations ({locationCount})</span>; the result is written to every location. This applies to +, − and =.</p>
         <p><span className="font-semibold text-foreground">+ / −:</span> The adjustment is added to / subtracted from the current value.</p>
-        <p><span className="font-semibold text-foreground">=:</span> The entered Hours Adj. / EFTE Adj. values <span className="font-semibold text-foreground">overwrite</span> Cur. Hours / Cur. EFTE as entered (no division; the divisor only decides own vs. all locations).</p>
+        <p><span className="font-semibold text-foreground">=:</span> The entered Hours Adj. / EFTE Adj. values <span className="font-semibold text-foreground">overwrite</span> Cur. Hours / Cur. EFTE as entered (for "own location"; for "all locations" the entered value is divided by {locationCount}).</p>
       </div>
 
       <EfteCalculatorBlock />
@@ -164,10 +177,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   <TableHead className="min-w-[80px]">+/−</TableHead>
                   <TableHead className="min-w-[100px]">Hours Adj.</TableHead>
                   <TableHead className="min-w-[100px]">EFTE Adj.</TableHead>
-                  <TableHead className="min-w-[100px]">
-                    <span>Divisor</span>
-                    <span className="block text-[10px] font-normal text-muted-foreground leading-tight">0 = own location</span>
-                  </TableHead>
+                  <TableHead className="min-w-[150px]">Scope</TableHead>
                   <TableHead className="bg-blue-50/60 border-l text-blue-700/80 text-xs whitespace-nowrap">Cur. Hours</TableHead>
                   <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
                   <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
@@ -181,9 +191,9 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   const key = `${row.locationName}:${row.rowNumber}`;
                   const cv = row.rowNumber > 0 && row.locationName ? currentValues[key] : undefined;
                   const isRowReady = row.rowNumber > 0 && !!row.locationName;
-                  const newHours = isRowReady ? calcNew(cv?.hours ?? null, row.hoursAdjustment, row.plusMinus, row.divisor) : null;
-                  const newEfte = isRowReady ? calcNew(cv?.efte ?? null, row.efteAdjustment, row.plusMinus, row.divisor) : null;
-                  const isAllLocations = row.divisor !== 0;
+                  const newHours = isRowReady ? calcNew(cv?.hours ?? null, row.hoursAdjustment, row.plusMinus, row.divisor, locationCount) : null;
+                  const newEfte = isRowReady ? calcNew(cv?.efte ?? null, row.efteAdjustment, row.plusMinus, row.divisor, locationCount) : null;
+                  const isAllLocations = row.divisor > 0;
 
                   return (
                     <TableRow key={index} className={isAllLocations ? "bg-amber-50/30" : ""}>
@@ -265,21 +275,20 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                         />
                       </TableCell>
 
-                      {/* Divisor */}
+                      {/* Scope: divisor 0 = own location, > 0 = all locations (÷ number of locations) */}
                       <TableCell>
-                        <div className="space-y-0.5">
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={row.divisor === 0 ? "0" : (row.divisor || "")}
-                            onChange={(e) => updateRow(index, "divisor", parseFloat(e.target.value) ?? 1)}
-                            className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          />
-                          <p className={`text-[10px] leading-tight font-medium ${isAllLocations ? "text-amber-600" : "text-blue-600"}`}>
-                            {isAllLocations ? "all locations" : "own location"}
-                          </p>
-                        </div>
+                        <Select
+                          value={isAllLocations ? "all" : "own"}
+                          onValueChange={(val) => updateRow(index, "divisor", val === "all" ? 1 : 0)}
+                        >
+                          <SelectTrigger className={`text-xs min-w-[130px] ${isAllLocations ? "text-amber-700" : ""}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="own" className="text-xs">Own location</SelectItem>
+                            <SelectItem value="all" className="text-xs">All locations ÷ {locationCount}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
 
                       {/* Current Hours */}

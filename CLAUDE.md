@@ -43,6 +43,16 @@ This is a separate layer from Replit's own deployment-level **Visibility** setti
 
 Any location that still can't be matched is now surfaced (not silently dropped) via a `skipped: SkippedLocation[]` field in the preview/export API response, shown in the UI and in the exported change report. If you touch this logic, keep that safety net intact.
 
+## Adjustment rules (Modify Rows step)
+
+Each rule has a mode (`plusMinus` in the API): `+`, `−` or `=`. `+`/`−` add/subtract the entered Hours Adj. / EFTE Adj. to the current value and then divide by the divisor if it's non-zero. **`=` overwrites** the cell with the entered value *as-is*: independent of the current value (also into empty cells) and **not divided** — the divisor then only decides scope (0 = own location, > 0 = all locations). A field left at 0 in `=` mode writes 0 (decided with the user, 2026-11-05).
+
+The calculation exists twice and must stay in sync: `calcNew` in `artifacts/excel-tool/src/components/wizard/StepModifyRows.tsx` (live Cur./New columns) and `calcNew` plus `precomputeSourceValues` in `artifacts/api-server/src/lib/excelProcessor.ts` (what preview and export actually use). Adding or changing a mode also means editing the `plusMinus` enum in `lib/api-spec/openapi.yaml`, re-running codegen and updating the type in `sessionStore.ts`; otherwise the generated zod schema rejects the new value with a 400.
+
+## App version
+
+The version shown in the header (`v1.0.0`, `Wizard.tsx`) comes from `version` in `artifacts/excel-tool/package.json` — the single source. `vite.config.ts` injects it as `import.meta.env.VITE_APP_VERSION` via `define`. It is bumped by hand; ask the user when a bump is wanted.
+
 ## Local dev on Windows
 
 Running `artifacts/excel-tool`'s `vite dev` on Windows can fail with "Cannot find module" for `@rollup/rollup-win32-x64-msvc`, `lightningcss-win32-x64-msvc`, or `@tailwindcss/oxide-win32-x64-msvc` (a known pnpm/npm optional-dependency bug). Fix locally with `pnpm add -D -w <package>` — but **revert these from `package.json`/`pnpm-lock.yaml` before committing**; they're Windows-only native binaries and would break `pnpm install` on Replit's Linux hosting if left in as hard devDependencies.

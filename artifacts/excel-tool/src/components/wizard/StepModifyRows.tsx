@@ -24,7 +24,9 @@ interface StepModifyRowsProps {
   refreshSession: () => void;
 }
 
-function calcNew(current: number | null, adj: number, plusMinus: "+" | "-", divisor: number): number | null {
+function calcNew(current: number | null, adj: number, plusMinus: ModifyRowConfigPlusMinus, divisor: number): number | null {
+  // "=" overwrites with the entered value as-is, regardless of the current value or divisor.
+  if (plusMinus === "=") return adj;
   if (current === null) return null;
   const adjusted = plusMinus === "-" ? current - adj : current + adj;
   return divisor !== 0 ? Math.round((adjusted / divisor) * 100) / 100 : adjusted;
@@ -130,6 +132,8 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
       <div className="rounded-md border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
         <p><span className="font-semibold text-foreground">Divisor = 0:</span> The new value is written <span className="font-semibold text-foreground">only to the selected location</span>.</p>
         <p><span className="font-semibold text-foreground">Divisor &gt; 0:</span> The new value is written to <span className="font-semibold text-foreground">all locations</span>.</p>
+        <p><span className="font-semibold text-foreground">+ / −:</span> The adjustment is added to / subtracted from the current value.</p>
+        <p><span className="font-semibold text-foreground">=:</span> The entered Hours Adj. / EFTE Adj. values <span className="font-semibold text-foreground">overwrite</span> Cur. Hours / Cur. EFTE as entered (no division; the divisor only decides own vs. all locations).</p>
       </div>
 
       <EfteCalculatorBlock />
@@ -176,8 +180,9 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                 {rows.map((row, index) => {
                   const key = `${row.locationName}:${row.rowNumber}`;
                   const cv = row.rowNumber > 0 && row.locationName ? currentValues[key] : undefined;
-                  const newHours = cv ? calcNew(cv.hours, row.hoursAdjustment, row.plusMinus, row.divisor) : null;
-                  const newEfte = cv ? calcNew(cv.efte, row.efteAdjustment, row.plusMinus, row.divisor) : null;
+                  const isRowReady = row.rowNumber > 0 && !!row.locationName;
+                  const newHours = isRowReady ? calcNew(cv?.hours ?? null, row.hoursAdjustment, row.plusMinus, row.divisor) : null;
+                  const newEfte = isRowReady ? calcNew(cv?.efte ?? null, row.efteAdjustment, row.plusMinus, row.divisor) : null;
                   const isAllLocations = row.divisor !== 0;
 
                   return (
@@ -225,6 +230,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           <SelectContent>
                             <SelectItem value="+">+</SelectItem>
                             <SelectItem value="-">−</SelectItem>
+                            <SelectItem value="=">=</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>

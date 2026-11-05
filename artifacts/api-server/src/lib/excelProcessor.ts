@@ -224,7 +224,10 @@ export interface SkippedLocation {
   reason: string;
 }
 
-function calcNew(current: number | null, adjustment: number, plusMinus: "+" | "-", divisor: number): number | null {
+function calcNew(current: number | null, adjustment: number, plusMinus: ModifyRowConfig["plusMinus"], divisor: number): number | null {
+  // "=" overwrites the cell with the entered value as-is: independent of the
+  // current value (even an empty cell) and not divided by the divisor.
+  if (plusMinus === "=") return adjustment;
   if (current === null) return null;
   const adjusted = plusMinus === "-" ? current - adjustment : current + adjustment;
   const result = divisor !== 0 ? adjusted / divisor : adjusted;
@@ -252,6 +255,12 @@ function precomputeSourceValues(
     if (mr.divisor === 0) continue; // single-location rules don't need pre-computation
     const key = `${mr.locationName}:${mr.rowNumber}`;
     if (map.has(key)) continue;
+
+    // Overwrite rules don't depend on the source location's current values.
+    if (mr.plusMinus === "=") {
+      map.set(key, { newHours: mr.hoursAdjustment, newEfte: mr.efteAdjustment });
+      continue;
+    }
 
     const sourceFile = files.find((f) => f.locationName === mr.locationName);
     if (!sourceFile) {

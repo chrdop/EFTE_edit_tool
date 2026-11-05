@@ -61,6 +61,7 @@ export function Wizard() {
               <span className="text-primary-foreground font-bold font-mono text-sm">XT</span>
             </div>
             <h1 className="font-bold text-lg tracking-tight text-foreground">EFTE Merge & Edit Tool</h1>
+            <span className="text-xs font-mono text-muted-foreground" title="App version">v{import.meta.env.VITE_APP_VERSION}</span>
           </div>
           <Button variant="ghost" size="sm" onClick={startNewSession} className="text-muted-foreground hover:text-foreground">
             <RefreshCcw className="mr-2 h-4 w-4" />

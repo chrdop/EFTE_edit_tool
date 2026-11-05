@@ -18,7 +18,7 @@ export interface DeleteRowConfig {
 export interface ModifyRowConfig {
   locationName: string;
   rowNumber: number;
-  plusMinus: "+" | "-";
+  plusMinus: "+" | "-" | "=";
   hoursAdjustment: number;
   efteAdjustment: number;
   divisor: number;

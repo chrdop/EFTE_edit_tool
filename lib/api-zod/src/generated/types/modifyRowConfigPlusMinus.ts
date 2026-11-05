@@ -11,4 +11,5 @@ export type ModifyRowConfigPlusMinus = typeof ModifyRowConfigPlusMinus[keyof typ
 export const ModifyRowConfigPlusMinus = {
   '+': '+',
   '-': '-',
+  '=': '=',
 } as const;

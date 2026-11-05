@@ -50,7 +50,7 @@ export const GetSessionResponse = zod.object({
   "modifyRows": zod.array(zod.object({
   "locationName": zod.string(),
   "rowNumber": zod.number(),
-  "plusMinus": zod.enum(['+', '-']),
+  "plusMinus": zod.enum(['+', '-', '=']),
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
   "divisor": zod.number(),
@@ -75,7 +75,7 @@ export const UpdateSessionBody = zod.object({
   "modifyRows": zod.array(zod.object({
   "locationName": zod.string(),
   "rowNumber": zod.number(),
-  "plusMinus": zod.enum(['+', '-']),
+  "plusMinus": zod.enum(['+', '-', '=']),
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
   "divisor": zod.number(),
@@ -99,7 +99,7 @@ export const UpdateSessionResponse = zod.object({
   "modifyRows": zod.array(zod.object({
   "locationName": zod.string(),
   "rowNumber": zod.number(),
-  "plusMinus": zod.enum(['+', '-']),
+  "plusMinus": zod.enum(['+', '-', '=']),
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
   "divisor": zod.number(),
@@ -136,7 +136,7 @@ export const UploadFilesResponse = zod.object({
   "modifyRows": zod.array(zod.object({
   "locationName": zod.string(),
   "rowNumber": zod.number(),
-  "plusMinus": zod.enum(['+', '-']),
+  "plusMinus": zod.enum(['+', '-', '=']),
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
   "divisor": zod.number(),

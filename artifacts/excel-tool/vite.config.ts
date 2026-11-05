@@ -1,8 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import fs from "fs";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+
+// The app version shown in the UI comes from this package's package.json.
+const appVersion: string = JSON.parse(
+  fs.readFileSync(path.resolve(import.meta.dirname, "package.json"), "utf-8"),
+).version;
 
 const rawPort = process.env.PORT;
 
@@ -28,6 +34,9 @@ if (!basePath) {
 
 export default defineConfig({
   base: basePath,
+  define: {
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
+  },
   plugins: [
     react(),
     tailwindcss(),

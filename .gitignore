@@ -57,3 +57,6 @@ artifacts/api-server/uploads/*
 
 # Local feature/bug request documents (.odt) - kept out of the repo
 Bugs/
+
+# Change reports / playbooks contain real location names and figures - never commit them (any folder)
+Change_Report_*.txt

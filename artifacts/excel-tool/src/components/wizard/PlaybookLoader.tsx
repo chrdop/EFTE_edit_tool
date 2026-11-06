@@ -67,8 +67,8 @@ export function PlaybookLoader({ session, sessionId, refreshSession }: PlaybookL
       <div className="p-4 space-y-3 text-sm">
         <p className="text-xs text-muted-foreground">
           Choose last month's change report (<span className="font-mono">Change_Report_….txt</span>). It pre-fills the delete rows, the Karenz / other-cluster
-          entries and the adjustment rules for you to review in steps 3 and 4. The amounts stay empty on purpose — enter them again for this month. Loading
-          replaces anything already entered in those steps.
+          entries and the adjustment rules for you to review in steps 3 and 4. The amounts stay empty on purpose — enter them again for this month (rules that only
+          redistribute a source value, i.e. "+" / "−" with 0 amounts last month, come in as confirmed). Loading replaces anything already entered in those steps.
         </p>
 
         {error && (

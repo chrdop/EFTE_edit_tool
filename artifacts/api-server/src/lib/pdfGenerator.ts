@@ -63,8 +63,10 @@ function buildPlaybook(session: Session) {
       plusMinus: r.plusMinus,
       scope: r.divisor > 0 ? "all" : "own",
       remarks: r.remarks ?? "",
-      previousHoursAdjustment: r.hoursAdjustment,
-      previousEfteAdjustment: r.efteAdjustment,
+      // A rule whose amounts were never entered or confirmed this month keeps the last real amounts as the
+      // reference, instead of replacing them with the unconfirmed 0.
+      previousHoursAdjustment: r.pending ? (r.previousHoursAdjustment ?? r.hoursAdjustment) : r.hoursAdjustment,
+      previousEfteAdjustment: r.pending ? (r.previousEfteAdjustment ?? r.efteAdjustment) : r.efteAdjustment,
     })),
   };
 }

@@ -79,8 +79,8 @@ export function parsePlaybook(reportText: string): ParsePlaybookResult {
 }
 
 /**
- * Session data for a loaded playbook. The rule amounts are deliberately left empty and the rules
- * are marked pending: they come from an external source every month and must be entered again.
+ * Session data for a loaded playbook. The rule amounts are deliberately left empty and rules that
+ * need an amount are marked pending: they come from an external source every month and must be entered again.
  */
 export function playbookToSessionUpdate(
   pb: Playbook,
@@ -109,7 +109,9 @@ export function playbookToSessionUpdate(
       efteAdjustment: 0,
       divisor: r.scope === "all" ? 1 : 0,
       remarks: r.remarks,
-      pending: true,
+      // A "+"/"−" rule without an amount last month only redistributes a source value, so there is
+      // nothing to enter and it is loaded as confirmed. Every other rule waits for this month's amount.
+      pending: r.plusMinus === "=" || r.previousHoursAdjustment !== 0 || r.previousEfteAdjustment !== 0,
       previousHoursAdjustment: r.previousHoursAdjustment,
       previousEfteAdjustment: r.previousEfteAdjustment,
     })),

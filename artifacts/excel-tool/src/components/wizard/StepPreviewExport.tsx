@@ -70,6 +70,13 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
   const hasSkipped = previewData?.skipped && previewData.skipped.length > 0;
   const hasWarnings = !!previewData?.warnings && previewData.warnings.length > 0;
 
+  // Rows that are cleared and then written again by an adjustment rule (the rule is applied after the clearing)
+  const ruleWrittenKeys = new Set((previewData?.modifyPreview ?? []).map((r) => `${r.locationName}:${r.rowNumber}`));
+  const clearedThenWritten = (row: { locationName: string; rowNumber: number }) => ruleWrittenKeys.has(`${row.locationName}:${row.rowNumber}`);
+  const clearedThenWrittenRows = Array.from(
+    new Set((previewData?.deletePreview ?? []).filter(clearedThenWritten).map((r) => r.rowNumber)),
+  ).sort((a, b) => a - b);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -149,6 +156,12 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
                 <FileText className="w-4 h-4 text-red-500" />
                 <span className="text-sm font-semibold text-red-700">Rows to be deleted</span>
               </div>
+              {clearedThenWrittenRows.length > 0 && (
+                <p className="px-4 py-2 text-xs border-b bg-amber-50/60 text-amber-900">
+                  Row{clearedThenWrittenRows.length > 1 ? "s" : ""} {clearedThenWrittenRows.join(", ")} {clearedThenWrittenRows.length > 1 ? "are" : "is"} cleared first and then
+                  written again by an adjustment rule — the rule's value is what ends up in the file (see "Rows to be adjusted").
+                </p>
+              )}
               <ScrollArea className="max-h-60">
                 <Table>
                   <TableHeader>
@@ -163,7 +176,12 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
                     {previewData.deletePreview.map((row, i) => (
                       <TableRow key={i}>
                         <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
-                        <TableCell className="text-xs">{row.locationName || row.sheetName}</TableCell>
+                        <TableCell className="text-xs">
+                          {row.locationName || row.sheetName}
+                          {clearedThenWritten(row) && (
+                            <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">then set by a rule</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right font-mono text-xs bg-blue-50/40 text-muted-foreground">
                           {row.currentHours ?? "—"}
                         </TableCell>

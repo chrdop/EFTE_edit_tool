@@ -199,6 +199,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
           <p>
             The amounts are empty on purpose: enter this month's Hours Adj. / EFTE Adj. (last month's are shown as "Prev."). Rows marked "Amount needed" are
             still open{pendingCount > 0 ? ` (${pendingCount} of ${rows.length})` : " — none left"}; click the marker to confirm an amount as it is (e.g. a deliberate 0).
+            Rules that only redistribute a source value ("+" / "−" with 0 amounts last month) were loaded as confirmed.
           </p>
           {session.playbookSource.locationCount !== locationCount && (
             <p className="font-semibold">

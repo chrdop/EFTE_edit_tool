@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { DeleteRowConfig } from './deleteRowConfig';
+import type { KarenzEntry } from './karenzEntry';
 import type { ModifyRowConfig } from './modifyRowConfig';
 
 export interface SessionUpdate {
@@ -12,4 +13,5 @@ export interface SessionUpdate {
   selectedMonth?: string | null;
   deleteRows?: DeleteRowConfig[];
   modifyRows?: ModifyRowConfig[];
+  karenzEntries?: KarenzEntry[];
 }

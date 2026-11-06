@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
-import type { UploadedFile, DeleteRowConfig, ModifyRowConfig } from "./sessionStore.js";
+import type { UploadedFile, DeleteRowConfig, ModifyRowConfig, KarenzEntry } from "./sessionStore.js";
+import { applyRemoval, buildRemovalMap, describeRemoval, removalKey, round2, type RowRemoval } from "./removals.js";
 
 const CANONICAL_MONTHS = [
   "January","February","March","April","May","June",
@@ -144,6 +145,12 @@ export interface RowCurrentValue {
   rowNumber: number;
   hours: number | null;
   efte: number | null;
+  /** Values after Karenz / other-cluster entries were taken out (equal hours/efte if none). */
+  baseHours?: number | null;
+  baseEfte?: number | null;
+  karenzHours?: number;
+  karenzEfte?: number;
+  clusterRemoved?: boolean;
 }
 
 export interface ReadValuesItem {
@@ -151,10 +158,14 @@ export interface ReadValuesItem {
   rowNumber: number;
 }
 
+/**
+ * `removals` must already exclude rows cleared by "Delete rows" (see buildRemovalMap).
+ */
 export async function readCurrentValues(
   files: UploadedFile[],
   month: string,
   items: ReadValuesItem[],
+  removals: Map<string, RowRemoval> = new Map(),
 ): Promise<RowCurrentValue[]> {
   // Group items by locationName to avoid re-reading the same file multiple times
   const byLocation = new Map<string, number[]>();
@@ -181,10 +192,18 @@ export async function readCurrentValues(
       const cols = findMonthCols(ws, month);
       if (!cols) continue;
       for (const rowNumber of rowNumbers) {
+        const hours = getCellValue(ws, rowNumber, cols.hoursCol0);
+        const efte = getCellValue(ws, rowNumber, cols.efteCol0);
+        const removal = removals.get(removalKey(locationName, rowNumber));
         resultMap.set(`${locationName}:${rowNumber}`, {
           rowNumber,
-          hours: getCellValue(ws, rowNumber, cols.hoursCol0),
-          efte: getCellValue(ws, rowNumber, cols.efteCol0),
+          hours,
+          efte,
+          baseHours: applyRemoval(hours, removal, "hours"),
+          baseEfte: applyRemoval(efte, removal, "efte"),
+          karenzHours: removal?.karenzHours ?? 0,
+          karenzEfte: removal?.karenzEfte ?? 0,
+          clusterRemoved: removal?.clusterRemoved ?? false,
         });
       }
       found = true;
@@ -224,10 +243,6 @@ export interface SkippedLocation {
   reason: string;
 }
 
-function round2(v: number): number {
-  return Math.round(v * 100) / 100;
-}
-
 /**
  * divisor === 0 means "own location only". divisor > 0 means "all locations":
  * the result is then divided by the number of uploaded locations (locationCount) —
@@ -262,6 +277,7 @@ function precomputeSourceValues(
   files: UploadedFile[],
   month: string,
   modifyRows: ModifyRowConfig[],
+  removals: Map<string, RowRemoval> = new Map(),
 ): Map<string, PrecomputedValue> {
   const map = new Map<string, PrecomputedValue>();
 
@@ -292,8 +308,10 @@ function precomputeSourceValues(
       if (!ws) continue;
       const cols = findMonthCols(ws, month);
       if (!cols) continue;
-      const sourceHours = getCellValue(ws, mr.rowNumber, cols.hoursCol0);
-      const sourceEfte = getCellValue(ws, mr.rowNumber, cols.efteCol0);
+      // Karenz / other-cluster entries at the source location come out first, then the rule applies.
+      const removal = removals.get(removalKey(mr.locationName, mr.rowNumber));
+      const sourceHours = applyRemoval(getCellValue(ws, mr.rowNumber, cols.hoursCol0), removal, "hours");
+      const sourceEfte = applyRemoval(getCellValue(ws, mr.rowNumber, cols.efteCol0), removal, "efte");
       map.set(key, {
         newHours: calcNew(sourceHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor, files.length),
         newEfte: calcNew(sourceEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor, files.length),
@@ -307,18 +325,125 @@ function precomputeSourceValues(
   return map;
 }
 
+/** Year of the processed month, read from the "Year" row near the top of a sheet (e.g. "Year | 2026"). */
+function detectYear(ws: XLSX.WorkSheet): number | null {
+  const range = XLSX.utils.decode_range(ws["!ref"] ?? "A1:A1");
+  for (let r = 0; r <= Math.min(range.e.r, 12); r++) {
+    const label = String(ws[XLSX.utils.encode_cell({ r, c: 0 })]?.v ?? "").trim().toLowerCase();
+    if (label !== "year") continue;
+    const v = ws[XLSX.utils.encode_cell({ r, c: 1 })]?.v;
+    const n = typeof v === "number" ? v : parseInt(String(v ?? ""), 10);
+    if (Number.isInteger(n) && n > 1900 && n < 3000) return n;
+  }
+  return null;
+}
+
+/** Rules that write into the cell of (location, row). */
+function rulesWritingTo(modifyRows: ModifyRowConfig[], locationName: string, rowNumber: number): ModifyRowConfig[] {
+  return modifyRows.filter((mr) => mr.rowNumber === rowNumber && (mr.divisor > 0 || mr.locationName === locationName));
+}
+
+/** True if the rule's result starts from the (Karenz-adjusted) current value of this location's cell. */
+function ruleUsesBase(mr: ModifyRowConfig, locationName: string): boolean {
+  return mr.plusMinus !== "=" && (mr.divisor === 0 || mr.locationName === locationName);
+}
+
+function buildRemovalWarnings(args: {
+  files: UploadedFile[];
+  month: string;
+  deleteSet: Set<number>;
+  modifyRows: ModifyRowConfig[];
+  karenzEntries: KarenzEntry[];
+  removals: Map<string, RowRemoval>;
+  originals: Map<string, { hours: number | null; efte: number | null }>;
+  processedYear: number | null;
+}): string[] {
+  const { files, month, deleteSet, modifyRows, karenzEntries, removals, originals, processedYear } = args;
+  const warnings: string[] = [];
+  const known = new Set(files.map((f) => f.locationName));
+  const label = (e: KarenzEntry) =>
+    `${e.kind === "cluster" ? "Other cluster" : "Karenz"} "${e.name?.trim() || "(no name)"}" (${e.locationName}, row ${e.rowNumber})`;
+  const negativeChecked = new Set<string>();
+
+  for (const e of karenzEntries) {
+    if (!(e.rowNumber > 0) || !e.locationName) continue; // incomplete entries are ignored (the UI drops them too)
+
+    if (!known.has(e.locationName)) {
+      warnings.push(`${label(e)}: location is not among the uploaded files — not applied.`);
+      continue;
+    }
+    if (deleteSet.has(e.rowNumber)) {
+      warnings.push(`${label(e)}: the row is cleared by "Delete rows" — no effect.`);
+      continue;
+    }
+
+    // Rules are applied in order, so the last one writing to this cell decides whether the entry has any effect.
+    const rules = rulesWritingTo(modifyRows, e.locationName, e.rowNumber);
+    const lastRule = rules[rules.length - 1];
+    if (lastRule && !ruleUsesBase(lastRule, e.locationName)) {
+      warnings.push(
+        `${label(e)}: the row is overwritten by an adjustment rule ("=" or an all-locations rule from another location) — no effect.`,
+      );
+      continue;
+    }
+
+    const key = removalKey(e.locationName, e.rowNumber);
+    const orig = originals.get(key);
+    if (e.kind === "karenz" && orig && orig.hours === null && orig.efte === null) {
+      warnings.push(`${label(e)}: the cell has no value — nothing to subtract.`);
+    }
+    const removal = removals.get(key);
+    if (e.kind === "karenz" && orig && removal && !removal.clusterRemoved && !negativeChecked.has(key)) {
+      negativeChecked.add(key);
+      const h = applyRemoval(orig.hours, removal, "hours");
+      const f = applyRemoval(orig.efte, removal, "efte");
+      if ((h !== null && h < 0) || (f !== null && f < 0)) {
+        warnings.push(`${label(e)}: the result would be negative (hours ${orig.hours} → ${h}, EFTE ${orig.efte} → ${f}).`);
+      }
+    }
+
+    if (e.kind === "karenz" && e.returnMonth) {
+      const m = /^(\d{4})-(\d{2})$/.exec(e.returnMonth);
+      const monthIdx = CANONICAL_MONTHS.indexOf(month);
+      if (m && monthIdx >= 0) {
+        if (processedYear === null) {
+          warnings.push(`${label(e)}: return month ${e.returnMonth} could not be checked (year not found in the files).`);
+        } else if (processedYear * 12 + monthIdx >= Number(m[1]) * 12 + (Number(m[2]) - 1)) {
+          warnings.push(
+            `${label(e)}: return month ${e.returnMonth} is reached (processing ${month} ${processedYear}) — please check whether this entry still applies.`,
+          );
+        }
+      }
+    }
+  }
+
+  return warnings;
+}
+
 export async function previewChanges(
   files: UploadedFile[],
   month: string,
   deleteRows: DeleteRowConfig[],
   modifyRows: ModifyRowConfig[],
-): Promise<{ deletePreview: PreviewDeleteRow[]; modifyPreview: PreviewModifyRow[]; skipped: SkippedLocation[] }> {
+  karenzEntries: KarenzEntry[] = [],
+): Promise<{
+  deletePreview: PreviewDeleteRow[];
+  modifyPreview: PreviewModifyRow[];
+  skipped: SkippedLocation[];
+  warnings: string[];
+}> {
   const deletePreview: PreviewDeleteRow[] = [];
   const modifyPreview: PreviewModifyRow[] = [];
   const skipped: SkippedLocation[] = [];
 
+  // Rows cleared by "Delete rows" are final: Karenz / other-cluster entries don't apply there.
+  const deleteSet = new Set(deleteRows.map((d) => d.rowNumber));
+  const removals = buildRemovalMap(karenzEntries, deleteSet);
+  const originals = new Map<string, { hours: number | null; efte: number | null }>();
+  let processedYear: number | null = null;
+
   // Pre-compute new values from the source location for all-locations rules
-  const sourceValues = precomputeSourceValues(files, month, modifyRows);
+  const sourceValues = precomputeSourceValues(files, month, modifyRows, removals);
 
   for (const file of files) {
     const workbook = XLSX.readFile(file.filePath, { cellStyles: true, cellFormula: true });
@@ -330,6 +455,7 @@ export async function previewChanges(
       const cols = findMonthCols(ws, month);
       if (!cols) continue;
       matchedAnySheet = true;
+      processedYear ??= detectYear(ws);
 
       for (const dr of deleteRows) {
         deletePreview.push({
@@ -348,6 +474,7 @@ export async function previewChanges(
 
         const currentHours = getCellValue(ws, mr.rowNumber, cols.hoursCol0);
         const currentEfte = getCellValue(ws, mr.rowNumber, cols.efteCol0);
+        const removal = removals.get(removalKey(file.locationName, mr.rowNumber));
 
         let newHours: number | null;
         let newEfte: number | null;
@@ -358,11 +485,12 @@ export async function previewChanges(
           newHours = pre?.newHours ?? null;
           newEfte = pre?.newEfte ?? null;
         } else {
-          // Single-location: compute from this file's own current value
-          newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor, files.length);
-          newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor, files.length);
+          // Single-location: compute from this file's own current value (Karenz taken out first)
+          newHours = calcNew(applyRemoval(currentHours, removal, "hours"), mr.hoursAdjustment, mr.plusMinus, mr.divisor, files.length);
+          newEfte = calcNew(applyRemoval(currentEfte, removal, "efte"), mr.efteAdjustment, mr.plusMinus, mr.divisor, files.length);
         }
 
+        const removalNote = removal && ruleUsesBase(mr, file.locationName) ? describeRemoval(removal) : "";
         modifyPreview.push({
           rowNumber: mr.rowNumber,
           sheetName,
@@ -371,7 +499,32 @@ export async function previewChanges(
           currentEfte,
           newHours,
           newEfte,
-          remarks: mr.remarks,
+          remarks: removalNote ? [mr.remarks, removalNote].filter(Boolean).join(" | ") : mr.remarks,
+        });
+      }
+
+      // Karenz / other-cluster entries at this location
+      for (const [key, removal] of removals) {
+        const first = removal.entries[0]!;
+        if (first.locationName !== file.locationName) continue;
+        const hours = getCellValue(ws, first.rowNumber, cols.hoursCol0);
+        const efte = getCellValue(ws, first.rowNumber, cols.efteCol0);
+        if (!originals.has(key)) originals.set(key, { hours, efte });
+
+        // Rows that a rule writes to are covered by the rule above; the rest change on their own.
+        if (rulesWritingTo(modifyRows, file.locationName, first.rowNumber).length > 0) continue;
+        const newHours = applyRemoval(hours, removal, "hours");
+        const newEfte = applyRemoval(efte, removal, "efte");
+        if (newHours === null && newEfte === null) continue;
+        modifyPreview.push({
+          rowNumber: first.rowNumber,
+          sheetName,
+          locationName: file.locationName,
+          currentHours: hours,
+          currentEfte: efte,
+          newHours,
+          newEfte,
+          remarks: describeRemoval(removal),
         });
       }
     }
@@ -385,7 +538,18 @@ export async function previewChanges(
     }
   }
 
-  return { deletePreview, modifyPreview, skipped };
+  const warnings = buildRemovalWarnings({
+    files,
+    month,
+    deleteSet,
+    modifyRows,
+    karenzEntries,
+    removals,
+    originals,
+    processedYear,
+  });
+
+  return { deletePreview, modifyPreview, skipped, warnings };
 }
 
 export async function buildMasterExcel(
@@ -394,12 +558,16 @@ export async function buildMasterExcel(
   deleteRows: DeleteRowConfig[],
   modifyRows: ModifyRowConfig[],
   outputPath: string,
+  karenzEntries: KarenzEntry[] = [],
 ): Promise<{ skipped: SkippedLocation[] }> {
   const masterWorkbook = XLSX.utils.book_new();
   const skipped: SkippedLocation[] = [];
 
+  const deleteSet = new Set(deleteRows.map((d) => d.rowNumber));
+  const removals = buildRemovalMap(karenzEntries, deleteSet);
+
   // Pre-compute new values from source locations for all-locations rules
-  const sourceValues = precomputeSourceValues(files, month, modifyRows);
+  const sourceValues = precomputeSourceValues(files, month, modifyRows, removals);
 
   const usedSheetNames = new Set<string>();
 
@@ -436,6 +604,23 @@ export async function buildMasterExcel(
           }
         }
 
+        // Karenz / other-cluster rows that no rule writes to: write the value with the entries taken out
+        for (const removal of removals.values()) {
+          const first = removal.entries[0]!;
+          if (first.locationName !== file.locationName) continue;
+          if (rulesWritingTo(modifyRows, file.locationName, first.rowNumber).length > 0) continue;
+          const newHours = applyRemoval(getCellValue(targetWs, first.rowNumber, cols.hoursCol0), removal, "hours");
+          const newEfte = applyRemoval(getCellValue(targetWs, first.rowNumber, cols.efteCol0), removal, "efte");
+          if (newHours !== null) {
+            const addr = cellAddr(first.rowNumber, cols.hoursCol0);
+            targetWs[addr] = { ...(targetWs[addr] ?? {}), t: "n", v: newHours, w: String(newHours) };
+          }
+          if (newEfte !== null) {
+            const addr = cellAddr(first.rowNumber, cols.efteCol0);
+            targetWs[addr] = { ...(targetWs[addr] ?? {}), t: "n", v: newEfte, w: String(newEfte) };
+          }
+        }
+
         // Modify rows: recalculate and write new values
         // divisor=0 → only apply to matching location using its own current value
         // divisor>0 → write the pre-computed value (from source location) to all locations
@@ -452,9 +637,10 @@ export async function buildMasterExcel(
             newHours = pre?.newHours ?? null;
             newEfte = pre?.newEfte ?? null;
           } else {
-            // Single-location: compute from this file's own current value
-            const currentHours = getCellValue(targetWs, mr.rowNumber, cols.hoursCol0);
-            const currentEfte = getCellValue(targetWs, mr.rowNumber, cols.efteCol0);
+            // Single-location: compute from this file's own current value (Karenz taken out first)
+            const removal = removals.get(removalKey(file.locationName, mr.rowNumber));
+            const currentHours = applyRemoval(getCellValue(targetWs, mr.rowNumber, cols.hoursCol0), removal, "hours");
+            const currentEfte = applyRemoval(getCellValue(targetWs, mr.rowNumber, cols.efteCol0), removal, "efte");
             newHours = calcNew(currentHours, mr.hoursAdjustment, mr.plusMinus, mr.divisor, files.length);
             newEfte = calcNew(currentEfte, mr.efteAdjustment, mr.plusMinus, mr.divisor, files.length);
           }

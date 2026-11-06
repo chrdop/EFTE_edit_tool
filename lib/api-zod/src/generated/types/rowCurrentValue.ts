@@ -11,4 +11,16 @@ export interface RowCurrentValue {
   hours?: number | null;
   /** @nullable */
   efte?: number | null;
+  /**
+     * Hours after Karenz / other-cluster entries were taken out (equals hours if none).
+     * @nullable
+     */
+  baseHours?: number | null;
+  /** @nullable */
+  baseEfte?: number | null;
+  /** Total hours subtracted by Karenz entries for this row. */
+  karenzHours?: number;
+  karenzEfte?: number;
+  /** True if an other-cluster entry sets this row to 0. */
+  clusterRemoved?: boolean;
 }

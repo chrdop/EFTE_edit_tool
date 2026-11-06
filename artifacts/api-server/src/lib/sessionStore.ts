@@ -25,6 +25,21 @@ export interface ModifyRowConfig {
   remarks?: string;
 }
 
+/**
+ * A person taken out of the original values of one row at one location before the
+ * adjustment rules run. "karenz" subtracts hours/EFTE; "cluster" (person belongs to
+ * another cluster) sets the row to 0.
+ */
+export interface KarenzEntry {
+  kind: "karenz" | "cluster";
+  name?: string;
+  locationName: string;
+  rowNumber: number;
+  hours?: number;
+  efte?: number;
+  returnMonth?: string; // YYYY-MM, karenz only, used for a warning only
+}
+
 export type SessionStatus = "empty" | "uploaded" | "configured" | "exported";
 
 export interface Session {
@@ -33,6 +48,7 @@ export interface Session {
   selectedMonth: string | null;
   deleteRows: DeleteRowConfig[];
   modifyRows: ModifyRowConfig[];
+  karenzEntries: KarenzEntry[];
   status: SessionStatus;
   exportedFilePath?: string;
   exportedPdfPath?: string;
@@ -47,6 +63,7 @@ export function createSession(): Session {
     selectedMonth: null,
     deleteRows: [],
     modifyRows: [],
+    karenzEntries: [],
     status: "empty",
   };
   sessions.set(session.id, session);

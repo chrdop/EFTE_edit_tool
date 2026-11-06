@@ -9,8 +9,10 @@ import {
   getUploadsDir,
   type DeleteRowConfig,
   type ModifyRowConfig,
+  type KarenzEntry,
 } from "../../lib/sessionStore.js";
 import { analyzeExcelFile, previewChanges, buildMasterExcel, readCurrentValues } from "../../lib/excelProcessor.js";
+import { buildRemovalMap } from "../../lib/removals.js";
 import {
   GetSessionParams,
   UpdateSessionParams,
@@ -68,6 +70,7 @@ function serializeSession(session: ReturnType<typeof getSession>) {
     selectedMonth: session.selectedMonth,
     deleteRows: session.deleteRows,
     modifyRows: session.modifyRows,
+    karenzEntries: session.karenzEntries,
     status: session.status,
   };
 }
@@ -119,6 +122,7 @@ router.patch("/sessions/:sessionId", async (req, res): Promise<void> => {
   if (body.data.selectedMonth !== undefined) updates.selectedMonth = body.data.selectedMonth;
   if (body.data.deleteRows !== undefined) updates.deleteRows = body.data.deleteRows as DeleteRowConfig[];
   if (body.data.modifyRows !== undefined) updates.modifyRows = body.data.modifyRows as ModifyRowConfig[];
+  if (body.data.karenzEntries !== undefined) updates.karenzEntries = body.data.karenzEntries as KarenzEntry[];
 
   const hasFiles = session.files.length > 0;
   const hasMonth = (updates.selectedMonth ?? session.selectedMonth) !== null;
@@ -223,6 +227,7 @@ router.post("/sessions/:sessionId/read-values", async (req, res): Promise<void> 
     session.files,
     session.selectedMonth,
     body.data.items,
+    buildRemovalMap(session.karenzEntries, new Set(session.deleteRows.map((d) => d.rowNumber))),
   );
 
   res.json({ values });
@@ -258,6 +263,7 @@ router.post("/sessions/:sessionId/preview", async (req, res): Promise<void> => {
     session.selectedMonth,
     session.deleteRows,
     session.modifyRows,
+    session.karenzEntries,
   );
 
   res.json(result);
@@ -298,6 +304,7 @@ router.post("/sessions/:sessionId/export", async (req, res): Promise<void> => {
     session.deleteRows,
     session.modifyRows,
     outputPath,
+    session.karenzEntries,
   );
 
   // Generate PDF change report
@@ -306,6 +313,7 @@ router.post("/sessions/:sessionId/export", async (req, res): Promise<void> => {
     session.selectedMonth,
     session.deleteRows,
     session.modifyRows,
+    session.karenzEntries,
   );
   const pdfBuffer = await generateReportPdf(session, preview);
   if (preview.skipped.length > 0) {
@@ -427,6 +435,7 @@ router.post("/sessions/:sessionId/send-email", async (req, res): Promise<void> =
       session.deleteRows,
       session.modifyRows,
       outputPath,
+      session.karenzEntries,
     );
     updateSession(params.data.sessionId, { status: "exported", exportedFilePath: outputPath });
   }
@@ -437,6 +446,7 @@ router.post("/sessions/:sessionId/send-email", async (req, res): Promise<void> =
     session.selectedMonth,
     session.deleteRows,
     session.modifyRows,
+    session.karenzEntries,
   );
 
   // Generate PDF report

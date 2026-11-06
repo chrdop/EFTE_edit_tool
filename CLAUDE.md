@@ -49,6 +49,12 @@ Each rule has a mode (`plusMinus` in the API: `+`, `−` or `=`) and a scope (`d
 
 The calculation exists twice and must stay in sync: `calcNew` in `artifacts/excel-tool/src/components/wizard/StepModifyRows.tsx` (live Cur./New columns) and `calcNew` plus `precomputeSourceValues` in `artifacts/api-server/src/lib/excelProcessor.ts` (what preview and export actually use); both take the location count as a parameter. Adding or changing a mode also means editing the `plusMinus` enum in `lib/api-spec/openapi.yaml`, re-running codegen and updating the type in `sessionStore.ts`; otherwise the generated zod schema rejects the new value with a 400.
 
+## Karenz / other-cluster entries
+
+`session.karenzEntries` (Step 3 "Karenz / other cluster" block): each entry is a person taken out of the **original** values of one row at one location *before* the adjustment rules run. `kind` `karenz` subtracts the entered hours/EFTE (several entries on the same cell are summed); `kind` `cluster` (person belongs to another cluster) sets the row at that location to 0 — no amounts needed. Order of effects: Delete rows → Karenz/cluster entries → adjustment rules (`+`/`−` and the all-locations source value work on the reduced "base"; an entry on a row that no rule writes to simply writes the reduced value). Entries on rows cleared by "Delete rows" are ignored. The **last** rule writing to a cell decides whether an entry has any effect (a `=` rule, or an all-locations rule at a non-source location, overwrites it). Optional `returnMonth` (YYYY-MM) only triggers a warning; the processed year is read from the "Year" row of the files.
+
+Logic lives in `artifacts/api-server/src/lib/removals.ts` plus `excelProcessor.ts` (`previewChanges`, `buildMasterExcel`, `readCurrentValues` returns `baseHours`/`karenzHours`/… for the Step 4 columns). Anything that looks wrong (unknown location, row cleared or overwritten, negative result, empty cell, return month reached) is reported in `PreviewResult.warnings` and shown in Step 5 — in line with the "never drop silently" rule above.
+
 ## App version
 
 The version shown in the header (`v1.0.0`, `Wizard.tsx`) comes from `version` in `artifacts/excel-tool/package.json` — the single source. `vite.config.ts` injects it as `import.meta.env.VITE_APP_VERSION` via `define`. It is bumped by hand; ask the user when a bump is wanted.

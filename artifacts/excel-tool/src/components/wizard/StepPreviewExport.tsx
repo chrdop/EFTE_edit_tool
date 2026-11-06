@@ -68,6 +68,7 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
   const hasModifies = previewData?.modifyPreview && previewData.modifyPreview.length > 0;
   const hasChanges = hasDeletes || hasModifies;
   const hasSkipped = previewData?.skipped && previewData.skipped.length > 0;
+  const hasWarnings = !!previewData?.warnings && previewData.warnings.length > 0;
 
   return (
     <div className="space-y-6">
@@ -128,6 +129,20 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
             </Alert>
           )}
 
+          {hasWarnings && (
+            <Alert className="border-amber-300 bg-amber-50 text-amber-900 [&>svg]:text-amber-700">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{previewData!.warnings.length} warning(s) — please check before exporting</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-5 space-y-1 text-xs mt-1">
+                  {previewData!.warnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {hasDeletes && (
             <div className="border rounded-lg overflow-hidden shadow-sm">
               <div className="bg-red-50/60 px-4 py-3 border-b flex items-center gap-2">
@@ -179,6 +194,7 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
                       <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Cur. EFTE</TableHead>
                       <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">New Hours</TableHead>
                       <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">New EFTE</TableHead>
+                      <TableHead className="text-xs">Remarks</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -198,6 +214,7 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
                         <TableCell className="text-right font-mono text-xs bg-primary/5 font-semibold text-primary">
                           {row.newEfte?.toFixed(2) ?? "—"}
                         </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{row.remarks}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

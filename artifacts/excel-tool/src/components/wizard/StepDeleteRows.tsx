@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Session, useUpdateSession, DeleteRowConfig } from "@workspace/api-client-react";
+import { Session, useUpdateSession, DeleteRowConfig, KarenzEntry } from "@workspace/api-client-react";
 import { Plus, X, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { KarenzBlock } from "@/components/wizard/KarenzBlock";
 
 interface StepDeleteRowsProps {
   session: Session;
@@ -19,7 +20,9 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
   const [rows, setRows] = useState<DeleteRowConfig[]>(
     session.deleteRows && session.deleteRows.length > 0 ? session.deleteRows : DEFAULT_ROWS
   );
+  const [karenz, setKarenz] = useState<KarenzEntry[]>(session.karenzEntries ?? []);
   const { mutate: updateSession, isPending } = useUpdateSession();
+  const locations = Array.from(new Set(session.files.map((f) => f.locationName).filter(Boolean)));
 
   const addRow = () => {
     setRows([...rows, { rowNumber: 0 }]);
@@ -38,8 +41,9 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
 
   const handleNext = () => {
     const validRows = rows.filter(r => r.rowNumber > 0);
+    const validKarenz = karenz.filter((k) => k.rowNumber > 0 && k.locationName);
     updateSession(
-      { sessionId, data: { deleteRows: validRows } },
+      { sessionId, data: { deleteRows: validRows, karenzEntries: validKarenz } },
       {
         onSuccess: () => {
           refreshSession();
@@ -109,6 +113,8 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
           )}
         </div>
       </div>
+
+      <KarenzBlock entries={karenz} onChange={setKarenz} locations={locations} />
 
       <div className="pt-6 flex justify-between border-t">
         <Button variant="outline" onClick={onBack} size="lg">

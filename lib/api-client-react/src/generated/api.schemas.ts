@@ -43,6 +43,29 @@ export interface ModifyRowConfig {
   remarks?: string;
 }
 
+export type KarenzEntryKind = typeof KarenzEntryKind[keyof typeof KarenzEntryKind];
+
+
+export const KarenzEntryKind = {
+  karenz: 'karenz',
+  cluster: 'cluster',
+} as const;
+
+/**
+ * A person whose hours/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind "karenz" subtracts the entered hours and EFTE; kind "cluster" (person belongs to another cluster) sets the row to 0.
+
+ */
+export interface KarenzEntry {
+  kind: KarenzEntryKind;
+  name?: string;
+  locationName: string;
+  rowNumber: number;
+  hours?: number;
+  efte?: number;
+  /** Optional return month as YYYY-MM (karenz only); only used for a warning. */
+  returnMonth?: string;
+}
+
 export type SessionStatus = typeof SessionStatus[keyof typeof SessionStatus];
 
 
@@ -60,6 +83,7 @@ export interface Session {
   selectedMonth: string | null;
   deleteRows: DeleteRowConfig[];
   modifyRows: ModifyRowConfig[];
+  karenzEntries: KarenzEntry[];
   status: SessionStatus;
 }
 
@@ -68,6 +92,7 @@ export interface SessionUpdate {
   selectedMonth?: string | null;
   deleteRows?: DeleteRowConfig[];
   modifyRows?: ModifyRowConfig[];
+  karenzEntries?: KarenzEntry[];
 }
 
 export interface PreviewDeleteRow {
@@ -92,6 +117,7 @@ export interface PreviewModifyRow {
   newHours: number | null;
   /** @nullable */
   newEfte: number | null;
+  remarks?: string;
 }
 
 export interface SkippedLocation {
@@ -104,6 +130,8 @@ export interface PreviewResult {
   deletePreview: PreviewDeleteRow[];
   modifyPreview: PreviewModifyRow[];
   skipped: SkippedLocation[];
+  /** Human-readable warnings about the configured changes (shown before export). */
+  warnings: string[];
 }
 
 export interface ReadValuesItem {
@@ -121,6 +149,18 @@ export interface RowCurrentValue {
   hours?: number | null;
   /** @nullable */
   efte?: number | null;
+  /**
+     * Hours after Karenz / other-cluster entries were taken out (equals hours if none).
+     * @nullable
+     */
+  baseHours?: number | null;
+  /** @nullable */
+  baseEfte?: number | null;
+  /** Total hours subtracted by Karenz entries for this row. */
+  karenzHours?: number;
+  karenzEfte?: number;
+  /** True if an other-cluster entry sets this row to 0. */
+  clusterRemoved?: boolean;
 }
 
 export interface ReadValuesResult {

@@ -11,6 +11,8 @@ export * from './emailResult';
 export * from './exportResult';
 export * from './fileUploadInput';
 export * from './healthStatus';
+export * from './karenzEntry';
+export * from './karenzEntryKind';
 export * from './loginRequest';
 export * from './loginResult';
 export * from './modifyRowConfig';

@@ -310,9 +310,34 @@ components:
         remarks:
           type: string
 
+    KarenzEntry:
+      description: >
+        A person whose hours/EFTE are taken out of the original values of one row at one
+        location before the adjustment rules run. kind "karenz" subtracts the entered hours
+        and EFTE; kind "cluster" (person belongs to another cluster) sets the row to 0.
+      type: object
+      required: [kind, locationName, rowNumber]
+      properties:
+        kind:
+          type: string
+          enum: [karenz, cluster]
+        name:
+          type: string
+        locationName:
+          type: string
+        rowNumber:
+          type: integer
+        hours:
+          type: number
+        efte:
+          type: number
+        returnMonth:
+          description: Optional return month as YYYY-MM (karenz only); only used for a warning.
+          type: string
+
     Session:
       type: object
-      required: [id, files, selectedMonth, deleteRows, modifyRows, status]
+      required: [id, files, selectedMonth, deleteRows, modifyRows, karenzEntries, status]
       properties:
         id:
           type: string
@@ -330,6 +355,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ModifyRowConfig"
+        karenzEntries:
+          type: array
+          items:
+            $ref: "#/components/schemas/KarenzEntry"
         status:
           type: string
           enum: [empty, uploaded, configured, exported]
@@ -347,6 +376,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ModifyRowConfig"
+        karenzEntries:
+          type: array
+          items:
+            $ref: "#/components/schemas/KarenzEntry"
 
     PreviewDeleteRow:
       type: object
@@ -381,6 +414,8 @@ components:
           type: ["number", "null"]
         newEfte:
           type: ["number", "null"]
+        remarks:
+          type: string
 
     SkippedLocation:
       type: object
@@ -395,7 +430,7 @@ components:
 
     PreviewResult:
       type: object
-      required: [deletePreview, modifyPreview, skipped]
+      required: [deletePreview, modifyPreview, skipped, warnings]
       properties:
         deletePreview:
           type: array
@@ -409,6 +444,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SkippedLocation"
+        warnings:
+          description: Human-readable warnings about the configured changes (shown before export).
+          type: array
+          items:
+            type: string
 
     ReadValuesItem:
       type: object
@@ -438,6 +478,19 @@ components:
           type: ["number", "null"]
         efte:
           type: ["number", "null"]
+        baseHours:
+          description: Hours after Karenz / other-cluster entries were taken out (equals hours if none).
+          type: ["number", "null"]
+        baseEfte:
+          type: ["number", "null"]
+        karenzHours:
+          description: Total hours subtracted by Karenz entries for this row.
+          type: number
+        karenzEfte:
+          type: number
+        clusterRemoved:
+          description: True if an other-cluster entry sets this row to 0.
+          type: boolean
 
     ReadValuesResult:
       type: object

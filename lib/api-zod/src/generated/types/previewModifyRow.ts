@@ -17,4 +17,5 @@ export interface PreviewModifyRow {
   newHours: number | null;
   /** @nullable */
   newEfte: number | null;
+  remarks?: string;
 }

@@ -56,6 +56,15 @@ export const GetSessionResponse = zod.object({
   "divisor": zod.number(),
   "remarks": zod.string().optional()
 })),
+  "karenzEntries": zod.array(zod.object({
+  "kind": zod.enum(['karenz', 'cluster']),
+  "name": zod.string().optional(),
+  "locationName": zod.string(),
+  "rowNumber": zod.number(),
+  "hours": zod.number().optional(),
+  "efte": zod.number().optional(),
+  "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
+}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
 })
 
@@ -80,7 +89,16 @@ export const UpdateSessionBody = zod.object({
   "efteAdjustment": zod.number(),
   "divisor": zod.number(),
   "remarks": zod.string().optional()
-})).optional()
+})).optional(),
+  "karenzEntries": zod.array(zod.object({
+  "kind": zod.enum(['karenz', 'cluster']),
+  "name": zod.string().optional(),
+  "locationName": zod.string(),
+  "rowNumber": zod.number(),
+  "hours": zod.number().optional(),
+  "efte": zod.number().optional(),
+  "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
+}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')).optional()
 })
 
 export const UpdateSessionResponse = zod.object({
@@ -105,6 +123,15 @@ export const UpdateSessionResponse = zod.object({
   "divisor": zod.number(),
   "remarks": zod.string().optional()
 })),
+  "karenzEntries": zod.array(zod.object({
+  "kind": zod.enum(['karenz', 'cluster']),
+  "name": zod.string().optional(),
+  "locationName": zod.string(),
+  "rowNumber": zod.number(),
+  "hours": zod.number().optional(),
+  "efte": zod.number().optional(),
+  "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
+}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
 })
 
@@ -142,6 +169,15 @@ export const UploadFilesResponse = zod.object({
   "divisor": zod.number(),
   "remarks": zod.string().optional()
 })),
+  "karenzEntries": zod.array(zod.object({
+  "kind": zod.enum(['karenz', 'cluster']),
+  "name": zod.string().optional(),
+  "locationName": zod.string(),
+  "rowNumber": zod.number(),
+  "hours": zod.number().optional(),
+  "efte": zod.number().optional(),
+  "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
+}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
 })
 
@@ -164,7 +200,12 @@ export const ReadCurrentValuesResponse = zod.object({
   "values": zod.array(zod.object({
   "rowNumber": zod.number(),
   "hours": zod.number().nullish(),
-  "efte": zod.number().nullish()
+  "efte": zod.number().nullish(),
+  "baseHours": zod.number().nullish().describe('Hours after Karenz \/ other-cluster entries were taken out (equals hours if none).'),
+  "baseEfte": zod.number().nullish(),
+  "karenzHours": zod.number().optional().describe('Total hours subtracted by Karenz entries for this row.'),
+  "karenzEfte": zod.number().optional(),
+  "clusterRemoved": zod.boolean().optional().describe('True if an other-cluster entry sets this row to 0.')
 }))
 })
 
@@ -191,13 +232,15 @@ export const PreviewChangesResponse = zod.object({
   "currentHours": zod.number().nullish(),
   "currentEfte": zod.number().nullish(),
   "newHours": zod.number().nullable(),
-  "newEfte": zod.number().nullable()
+  "newEfte": zod.number().nullable(),
+  "remarks": zod.string().optional()
 })),
   "skipped": zod.array(zod.object({
   "locationName": zod.string(),
   "fileName": zod.string(),
   "reason": zod.string()
-}))
+})),
+  "warnings": zod.array(zod.string()).describe('Human-readable warnings about the configured changes (shown before export).')
 })
 
 

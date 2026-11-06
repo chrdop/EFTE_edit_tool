@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Session, useUpdateSession, ModifyRowConfig, ModifyRowConfigPlusMinus } from "@workspace/api-client-react";
-import { Plus, X, Calculator } from "lucide-react";
+import { Plus, X, Calculator, UserMinus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EfteCalculatorBlock } from "@/components/wizard/EfteCalculatorBlock";
@@ -11,6 +11,12 @@ interface RowCurrentValue {
   rowNumber: number;
   hours: number | null;
   efte: number | null;
+  /** Values after Karenz / other-cluster entries were taken out (computed by the server). */
+  baseHours?: number | null;
+  baseEfte?: number | null;
+  karenzHours?: number;
+  karenzEfte?: number;
+  clusterRemoved?: boolean;
 }
 
 // Key: "locationName:rowNumber"
@@ -63,9 +69,15 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
 
   const fetchCurrentValues = useCallback(
     async (rowList: ModifyRowConfig[]) => {
-      const items = rowList
-        .filter((r) => r.rowNumber > 0 && r.locationName)
-        .map((r) => ({ locationName: r.locationName, rowNumber: r.rowNumber }));
+      // Rows of the rules plus rows of the Karenz / other-cluster entries (each row once)
+      const wanted = new Map<string, { locationName: string; rowNumber: number }>();
+      for (const r of rowList) {
+        if (r.rowNumber > 0 && r.locationName) wanted.set(`${r.locationName}:${r.rowNumber}`, { locationName: r.locationName, rowNumber: r.rowNumber });
+      }
+      for (const k of session.karenzEntries ?? []) {
+        if (k.rowNumber > 0 && k.locationName) wanted.set(`${k.locationName}:${k.rowNumber}`, { locationName: k.locationName, rowNumber: k.rowNumber });
+      }
+      const items = Array.from(wanted.values());
 
       if (items.length === 0 || !session.selectedMonth) {
         setCurrentValues({});
@@ -96,7 +108,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
         setIsFetchingValues(false);
       }
     },
-    [sessionId, session.selectedMonth],
+    [sessionId, session.selectedMonth, session.karenzEntries],
   );
 
   useEffect(() => {
@@ -131,6 +143,27 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
       },
     );
   };
+
+  // Rows changed by a Karenz / other-cluster entry that no rule writes to (shown read-only below the rules)
+  const deletedRows = new Set((session.deleteRows ?? []).map((d) => d.rowNumber));
+  const karenzOnlyRows = Array.from(
+    (session.karenzEntries ?? [])
+      .filter(
+        (k) =>
+          k.rowNumber > 0 &&
+          !!k.locationName &&
+          !deletedRows.has(k.rowNumber) &&
+          !rows.some((r) => r.rowNumber === k.rowNumber && (r.divisor > 0 || r.locationName === k.locationName)),
+      )
+      .reduce((map, k) => {
+        const key = `${k.locationName}:${k.rowNumber}`;
+        const prev = map.get(key);
+        const who = `${k.kind === "cluster" ? "Other cluster" : "Karenz"}: ${k.name?.trim() || "(no name)"}`;
+        map.set(key, { key, locationName: k.locationName, rowNumber: k.rowNumber, who: prev ? `${prev.who}, ${who}` : who });
+        return map;
+      }, new Map<string, { key: string; locationName: string; rowNumber: number; who: string }>())
+      .values(),
+  );
 
   return (
     <div className="space-y-6">
@@ -180,6 +213,8 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   <TableHead className="min-w-[150px]">Scope</TableHead>
                   <TableHead className="bg-blue-50/60 border-l text-blue-700/80 text-xs whitespace-nowrap">Cur. Hours</TableHead>
                   <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
+                  <TableHead className="bg-rose-50/60 border-l text-rose-700/80 text-xs whitespace-nowrap">− Karenz (Hours / EFTE)</TableHead>
+                  <TableHead className="bg-rose-50/60 text-rose-700/80 text-xs whitespace-nowrap">Basis (Hours / EFTE)</TableHead>
                   <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
                   <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">New EFTE</TableHead>
                   <TableHead className="min-w-[180px]">Remarks</TableHead>
@@ -191,8 +226,10 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   const key = `${row.locationName}:${row.rowNumber}`;
                   const cv = row.rowNumber > 0 && row.locationName ? currentValues[key] : undefined;
                   const isRowReady = row.rowNumber > 0 && !!row.locationName;
-                  const newHours = isRowReady ? calcNew(cv?.hours ?? null, row.hoursAdjustment, row.plusMinus, row.divisor, locationCount) : null;
-                  const newEfte = isRowReady ? calcNew(cv?.efte ?? null, row.efteAdjustment, row.plusMinus, row.divisor, locationCount) : null;
+                  // Karenz / other-cluster entries are taken out first (server-computed base); the rule works on the base
+                  const newHours = isRowReady ? calcNew(cv?.baseHours ?? cv?.hours ?? null, row.hoursAdjustment, row.plusMinus, row.divisor, locationCount) : null;
+                  const newEfte = isRowReady ? calcNew(cv?.baseEfte ?? cv?.efte ?? null, row.efteAdjustment, row.plusMinus, row.divisor, locationCount) : null;
+                  const hasRemoval = !!cv && (cv.clusterRemoved || (cv.karenzHours ?? 0) !== 0 || (cv.karenzEfte ?? 0) !== 0);
                   const isAllLocations = row.divisor > 0;
 
                   return (
@@ -301,6 +338,16 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                         {isFetchingValues ? "…" : fmt(cv?.efte)}
                       </TableCell>
 
+                      {/* − Karenz */}
+                      <TableCell className="bg-rose-50/60 border-l align-middle text-xs font-mono text-rose-800 whitespace-nowrap">
+                        {isFetchingValues ? "…" : !hasRemoval ? "—" : cv?.clusterRemoved ? "row → 0" : `${fmt(cv?.karenzHours)} / ${fmt(cv?.karenzEfte)}`}
+                      </TableCell>
+
+                      {/* Basis (after Karenz) */}
+                      <TableCell className="bg-rose-50/60 align-middle text-xs font-mono text-rose-800 whitespace-nowrap">
+                        {isFetchingValues ? "…" : !hasRemoval ? "—" : `${fmt(cv?.baseHours)} / ${fmt(cv?.baseEfte)}`}
+                      </TableCell>
+
                       {/* New Hours */}
                       <TableCell className="bg-primary/5 border-l align-middle text-xs font-mono font-semibold text-primary whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(newHours)}
@@ -341,6 +388,46 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
           </div>
         )}
       </div>
+
+      {karenzOnlyRows.length > 0 && (
+        <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
+          <div className="bg-rose-50/60 px-4 py-3 border-b flex items-center gap-2 text-sm font-semibold text-rose-800">
+            <UserMinus className="w-4 h-4" />
+            <span>Rows changed by Karenz / other cluster only (no adjustment rule)</span>
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="min-w-[190px]">Location</TableHead>
+                  <TableHead className="min-w-[70px]">Row</TableHead>
+                  <TableHead className="min-w-[200px]">Who</TableHead>
+                  <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. Hours</TableHead>
+                  <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
+                  <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
+                  <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">New EFTE</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {karenzOnlyRows.map((k) => {
+                  const cv = currentValues[k.key];
+                  return (
+                    <TableRow key={k.key}>
+                      <TableCell className="text-xs">{k.locationName}</TableCell>
+                      <TableCell className="font-mono text-xs">{k.rowNumber}</TableCell>
+                      <TableCell className="text-xs">{k.who}</TableCell>
+                      <TableCell className="bg-blue-50/60 text-xs font-mono text-blue-800 whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.hours)}</TableCell>
+                      <TableCell className="bg-blue-50/60 text-xs font-mono text-blue-800 whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.efte)}</TableCell>
+                      <TableCell className="bg-primary/5 border-l text-xs font-mono font-semibold text-primary whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.baseHours)}</TableCell>
+                      <TableCell className="bg-primary/5 text-xs font-mono font-semibold text-primary whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.baseEfte)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       <div className="pt-6 flex justify-between border-t">
         <Button variant="outline" onClick={onBack} size="lg">

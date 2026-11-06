@@ -12,4 +12,6 @@ export interface PreviewResult {
   deletePreview: PreviewDeleteRow[];
   modifyPreview: PreviewModifyRow[];
   skipped: SkippedLocation[];
+  /** Human-readable warnings about the configured changes (shown before export). */
+  warnings: string[];
 }

@@ -55,6 +55,10 @@ The calculation exists twice and must stay in sync: `calcNew` in `artifacts/exce
 
 Logic lives in `artifacts/api-server/src/lib/removals.ts` plus `excelProcessor.ts` (`previewChanges`, `buildMasterExcel`, `readCurrentValues` returns `baseHours`/`karenzHours`/… for the Step 4 columns). Anything that looks wrong (unknown location, row cleared or overwritten, negative result, empty cell, return month reached) is reported in `PreviewResult.warnings` and shown in Step 5 — in line with the "never drop silently" rule above.
 
+## Monthly playbook (the change report)
+
+Every export's `Change_Report_<Month>.txt` doubles as next month's playbook: besides the human-readable result tables it lists the configured Karenz entries and rules, and ends with a machine-readable JSON block between the markers `<<<EFTE-PLAYBOOK-BEGIN>>>` / `<<<EFTE-PLAYBOOK-END>>>` (built by `buildPlaybook` in `artifacts/api-server/src/lib/pdfGenerator.ts`; format `efte-playbook`, `formatVersion` 1). It holds month, location count, delete rows, Karenz/cluster entries and the rules (location, row, mode, scope `own`/`all`, remarks). **Rule amounts are stored only as `previousHoursAdjustment`/`previousEfteAdjustment` for reference** — the monthly amounts come from an external source via the Staff EFTE calculator and must be re-entered each month, never silently reused. Playbook files contain real location names and figures: keep them out of Git (the user stores them outside the repo).
+
 ## App version
 
 The version shown in the header (`v1.0.0`, `Wizard.tsx`) comes from `version` in `artifacts/excel-tool/package.json` — the single source. `vite.config.ts` injects it as `import.meta.env.VITE_APP_VERSION` via `define`. It is bumped by hand; ask the user when a bump is wanted.

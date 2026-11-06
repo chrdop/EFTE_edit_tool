@@ -27,6 +27,46 @@ interface PreviewData {
   deletePreview: PreviewDeleteRow[];
   modifyPreview: PreviewModifyRow[];
   skipped: SkippedLocation[];
+  warnings: string[];
+}
+
+// The machine-readable block at the end of the report. The frontend's playbook parser
+// (artifacts/excel-tool/src/lib/playbook.ts) looks for exactly these markers.
+export const PLAYBOOK_BEGIN = "<<<EFTE-PLAYBOOK-BEGIN>>>";
+export const PLAYBOOK_END = "<<<EFTE-PLAYBOOK-END>>>";
+export const PLAYBOOK_FORMAT_VERSION = 1;
+
+/**
+ * What next month needs to rebuild the same setup: delete rows, Karenz / other-cluster
+ * entries and the rules. The rule amounts are carried only as "previous" reference values —
+ * they are re-entered every month.
+ */
+function buildPlaybook(session: Session) {
+  return {
+    format: "efte-playbook",
+    formatVersion: PLAYBOOK_FORMAT_VERSION,
+    month: session.selectedMonth,
+    generated: new Date().toISOString(),
+    locationCount: session.files.length,
+    deleteRows: session.deleteRows.map((d) => ({ rowNumber: d.rowNumber })),
+    karenzEntries: session.karenzEntries.map((k) => ({
+      kind: k.kind,
+      name: k.name ?? "",
+      locationName: k.locationName,
+      rowNumber: k.rowNumber,
+      ...(k.kind === "karenz" ? { hours: k.hours ?? 0, efte: k.efte ?? 0 } : {}),
+      ...(k.kind === "karenz" && k.returnMonth ? { returnMonth: k.returnMonth } : {}),
+    })),
+    rules: session.modifyRows.map((r) => ({
+      locationName: r.locationName,
+      rowNumber: r.rowNumber,
+      plusMinus: r.plusMinus,
+      scope: r.divisor > 0 ? "all" : "own",
+      remarks: r.remarks ?? "",
+      previousHoursAdjustment: r.hoursAdjustment,
+      previousEfteAdjustment: r.efteAdjustment,
+    })),
+  };
 }
 
 function fmt(val: number | null | undefined): string {
@@ -91,7 +131,8 @@ export function generateReportPdf(
     lines.push("No rows configured for deletion.");
   } else {
     const grouped = groupByRow(preview.deletePreview);
-    lines.push(`${grouped.length} row(s) cleared across ${preview.deletePreview.length} location(s)`);
+    const clearedLocations = new Set(preview.deletePreview.map((r) => r.locationName)).size;
+    lines.push(`${grouped.length} row(s) cleared across ${clearedLocations} location(s)`);
     lines.push("");
     lines.push(`${col("Row", 8)}Locations affected`);
     lines.push(line("-", 30));
@@ -128,6 +169,14 @@ export function generateReportPdf(
 
   lines.push("");
 
+  // ── Warnings ───────────────────────────────────────────────────────────
+  if (preview.warnings.length > 0) {
+    lines.push(`WARNINGS  (${preview.warnings.length} — please check)`);
+    lines.push(line("-"));
+    for (const w of preview.warnings) lines.push(`! ${w}`);
+    lines.push("");
+  }
+
   // ── Skipped Locations ──────────────────────────────────────────────────
   if (preview.skipped.length > 0) {
     lines.push("SKIPPED LOCATIONS  (NOT modified — please check manually)");
@@ -139,6 +188,47 @@ export function generateReportPdf(
     }
     lines.push("");
   }
+
+  // ── Removed persons ────────────────────────────────────────────────────
+  lines.push("KARENZ / OTHER CLUSTER  (taken out of the original values before the rules)");
+  lines.push(line("-"));
+  if (session.karenzEntries.length === 0) {
+    lines.push("No entries.");
+  } else {
+    lines.push(`${col("Type", 15)}${col("Name", 18)}${col("Row", 6)}${col("Hours", 10)}${col("EFTE", 8)}${col("Return", 9)}Location`);
+    for (const k of session.karenzEntries) {
+      const isCluster = k.kind === "cluster";
+      lines.push(
+        `${col(isCluster ? "Other cluster" : "Karenz", 15)}${col(k.name?.trim() || "-", 18)}${col(String(k.rowNumber), 6)}` +
+          `${col(isCluster ? "row -> 0" : fmt(k.hours ?? 0), 10)}${col(isCluster ? "" : fmt(k.efte ?? 0), 8)}${col(isCluster ? "" : k.returnMonth ?? "", 9)}${k.locationName}`,
+      );
+    }
+  }
+  lines.push("");
+
+  // ── Rules ──────────────────────────────────────────────────────────────
+  lines.push("ADJUSTMENT RULES  (as configured)");
+  lines.push(line("-"));
+  if (session.modifyRows.length === 0) {
+    lines.push("No rules.");
+  } else {
+    lines.push(`${col("Row", 6)}${col("Mode", 6)}${col("Hours Adj.", 12)}${col("EFTE Adj.", 11)}${col("Scope", 16)}Source location / remarks`);
+    for (const r of session.modifyRows) {
+      const scope = r.divisor > 0 ? `all ÷ ${session.files.length}` : "own location";
+      lines.push(
+        `${col(String(r.rowNumber), 6)}${col(r.plusMinus, 6)}${col(fmt(r.hoursAdjustment), 12)}${col(fmt(r.efteAdjustment), 11)}${col(scope, 16)}${r.locationName}${r.remarks ? ` — ${r.remarks}` : ""}`,
+      );
+    }
+  }
+  lines.push("");
+
+  // ── Playbook (machine-readable) ────────────────────────────────────────
+  lines.push("PLAYBOOK  (machine-readable — load this report in the tool next month; do not edit the block)");
+  lines.push(line("-"));
+  lines.push(PLAYBOOK_BEGIN);
+  lines.push(JSON.stringify(buildPlaybook(session), null, 2));
+  lines.push(PLAYBOOK_END);
+  lines.push("");
 
   lines.push(line("="));
   lines.push("End of report");

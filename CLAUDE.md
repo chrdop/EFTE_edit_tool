@@ -63,7 +63,7 @@ Every export's `Change_Report_<Month>.txt` doubles as next month's playbook: bes
 
 ## App version
 
-The version shown in the header (`v1.0.0`, `Wizard.tsx`) comes from `version` in `artifacts/excel-tool/package.json` — the single source. `vite.config.ts` injects it as `import.meta.env.VITE_APP_VERSION` via `define`. It is bumped by hand; ask the user when a bump is wanted.
+The version shown in the header (`Wizard.tsx`, e.g. `v1.1.0`) comes from `version` in `artifacts/excel-tool/package.json` — the single source. `vite.config.ts` injects it as `import.meta.env.VITE_APP_VERSION` via `define`. It is bumped by hand; ask the user when a bump is wanted.
 
 ## Local dev on Windows
 

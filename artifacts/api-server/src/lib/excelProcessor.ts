@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import type { UploadedFile, DeleteRowConfig, ModifyRowConfig, KarenzEntry } from "./sessionStore.js";
+import type { UploadedFile, DeleteRowConfig, ModifyRowConfig, KarenzEntry, PlaybookSource } from "./sessionStore.js";
 import { applyRemoval, buildRemovalMap, describeRemoval, removalKey, round2, type RowRemoval } from "./removals.js";
 
 const CANONICAL_MONTHS = [
@@ -420,12 +420,60 @@ function buildRemovalWarnings(args: {
   return warnings;
 }
 
+/** Warnings about the rules themselves and about the playbook they were loaded from. */
+function buildRuleWarnings(args: {
+  files: UploadedFile[];
+  month: string;
+  modifyRows: ModifyRowConfig[];
+  playbookSource?: PlaybookSource;
+}): string[] {
+  const { files, month, modifyRows, playbookSource } = args;
+  const warnings: string[] = [];
+  const known = new Set(files.map((f) => f.locationName));
+  const label = (mr: ModifyRowConfig) =>
+    `Rule row ${mr.rowNumber}${mr.remarks?.trim() ? ` "${mr.remarks.trim()}"` : ""} (${mr.locationName || "no location"})`;
+
+  if (playbookSource) {
+    const from = playbookSource.month ? ` (${playbookSource.month})` : "";
+    if (playbookSource.locationCount !== files.length) {
+      warnings.push(
+        `Number of locations changed: the playbook${from} had ${playbookSource.locationCount}, now ${files.length} are uploaded — all-locations rules divide by ${files.length}.`,
+      );
+    }
+    const prevIdx = playbookSource.month ? CANONICAL_MONTHS.indexOf(playbookSource.month) : -1;
+    const curIdx = CANONICAL_MONTHS.indexOf(month);
+    if (prevIdx >= 0 && curIdx >= 0) {
+      if (prevIdx === curIdx) {
+        warnings.push(`The playbook is from the same month (${month}) that is being processed.`);
+      } else if ((prevIdx + 1) % 12 !== curIdx) {
+        warnings.push(`The playbook is from ${playbookSource.month}, but ${month} is being processed — not the following month.`);
+      }
+    }
+  }
+
+  for (const mr of modifyRows) {
+    if (mr.pending) {
+      warnings.push(
+        `${label(mr)}: loaded from the playbook, amounts not entered or confirmed yet (Hours Adj. ${mr.hoursAdjustment}, EFTE Adj. ${mr.efteAdjustment}).`,
+      );
+    }
+    // An "=" rule for all locations doesn't read the source location, so a missing one is harmless there.
+    const sourceIrrelevant = mr.plusMinus === "=" && mr.divisor > 0;
+    if (!known.has(mr.locationName) && !sourceIrrelevant) {
+      warnings.push(`${label(mr)}: source location is not among the uploaded files — nothing is written.`);
+    }
+  }
+
+  return warnings;
+}
+
 export async function previewChanges(
   files: UploadedFile[],
   month: string,
   deleteRows: DeleteRowConfig[],
   modifyRows: ModifyRowConfig[],
   karenzEntries: KarenzEntry[] = [],
+  playbookSource?: PlaybookSource,
 ): Promise<{
   deletePreview: PreviewDeleteRow[];
   modifyPreview: PreviewModifyRow[];
@@ -538,16 +586,10 @@ export async function previewChanges(
     }
   }
 
-  const warnings = buildRemovalWarnings({
-    files,
-    month,
-    deleteSet,
-    modifyRows,
-    karenzEntries,
-    removals,
-    originals,
-    processedYear,
-  });
+  const warnings = [
+    ...buildRuleWarnings({ files, month, modifyRows, playbookSource }),
+    ...buildRemovalWarnings({ files, month, deleteSet, modifyRows, karenzEntries, removals, originals, processedYear }),
+  ];
 
   return { deletePreview, modifyPreview, skipped, warnings };
 }

@@ -14,4 +14,10 @@ export interface ModifyRowConfig {
   efteAdjustment: number;
   divisor: number;
   remarks?: string;
+  /** True while the amounts (Hours Adj. / EFTE Adj.) of a rule loaded from a playbook have not been entered or confirmed for this month. Raises a warning before export.
+   */
+  pending?: boolean;
+  /** Last month's amount, shown as a reference only. */
+  previousHoursAdjustment?: number;
+  previousEfteAdjustment?: number;
 }

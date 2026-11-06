@@ -23,6 +23,17 @@ export interface ModifyRowConfig {
   efteAdjustment: number;
   divisor: number;
   remarks?: string;
+  /** Amounts of a rule loaded from a playbook not yet entered / confirmed this month. */
+  pending?: boolean;
+  previousHoursAdjustment?: number;
+  previousEfteAdjustment?: number;
+}
+
+/** Where the rules of this session were loaded from (last month's playbook). */
+export interface PlaybookSource {
+  month?: string;
+  locationCount: number;
+  fileName?: string;
 }
 
 /**
@@ -49,6 +60,7 @@ export interface Session {
   deleteRows: DeleteRowConfig[];
   modifyRows: ModifyRowConfig[];
   karenzEntries: KarenzEntry[];
+  playbookSource?: PlaybookSource;
   status: SessionStatus;
   exportedFilePath?: string;
   exportedPdfPath?: string;

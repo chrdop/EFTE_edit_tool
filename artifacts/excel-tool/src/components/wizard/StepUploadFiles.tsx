@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Session } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { PlaybookLoader } from "@/components/wizard/PlaybookLoader";
 
 interface StepUploadFilesProps {
   session: Session;
@@ -156,6 +157,8 @@ export function StepUploadFiles({ session, sessionId, onNext, refreshSession }: 
           </Button>
         </div>
       </div>
+
+      <PlaybookLoader session={session} sessionId={sessionId} refreshSession={refreshSession} />
 
       {session.files.length > 0 && (
         <div className="space-y-4">

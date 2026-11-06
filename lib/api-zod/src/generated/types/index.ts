@@ -17,6 +17,7 @@ export * from './loginRequest';
 export * from './loginResult';
 export * from './modifyRowConfig';
 export * from './modifyRowConfigPlusMinus';
+export * from './playbookSource';
 export * from './previewDeleteRow';
 export * from './previewModifyRow';
 export * from './previewResult';

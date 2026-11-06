@@ -309,6 +309,29 @@ components:
           type: number
         remarks:
           type: string
+        pending:
+          description: >
+            True while the amounts (Hours Adj. / EFTE Adj.) of a rule loaded from a playbook have
+            not been entered or confirmed for this month. Raises a warning before export.
+          type: boolean
+        previousHoursAdjustment:
+          description: Last month's amount, shown as a reference only.
+          type: number
+        previousEfteAdjustment:
+          type: number
+
+    PlaybookSource:
+      description: Where the rules of this session were loaded from (last month's playbook).
+      type: object
+      required: [locationCount]
+      properties:
+        month:
+          type: string
+        locationCount:
+          description: Number of locations the playbook's month had.
+          type: integer
+        fileName:
+          type: string
 
     KarenzEntry:
       description: >
@@ -359,6 +382,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/KarenzEntry"
+        playbookSource:
+          $ref: "#/components/schemas/PlaybookSource"
         status:
           type: string
           enum: [empty, uploaded, configured, exported]
@@ -380,6 +405,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/KarenzEntry"
+        playbookSource:
+          $ref: "#/components/schemas/PlaybookSource"
 
     PreviewDeleteRow:
       type: object

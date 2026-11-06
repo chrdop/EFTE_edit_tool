@@ -7,6 +7,7 @@
 import type { DeleteRowConfig } from './deleteRowConfig';
 import type { KarenzEntry } from './karenzEntry';
 import type { ModifyRowConfig } from './modifyRowConfig';
+import type { PlaybookSource } from './playbookSource';
 import type { SessionStatus } from './sessionStatus';
 import type { UploadedFile } from './uploadedFile';
 
@@ -18,5 +19,6 @@ export interface Session {
   deleteRows: DeleteRowConfig[];
   modifyRows: ModifyRowConfig[];
   karenzEntries: KarenzEntry[];
+  playbookSource?: PlaybookSource;
   status: SessionStatus;
 }

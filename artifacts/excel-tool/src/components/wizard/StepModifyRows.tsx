@@ -131,6 +131,14 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
     setRows(newRows);
   };
 
+  const patchRow = (index: number, patch: Partial<ModifyRowConfig>) => {
+    const newRows = [...rows];
+    newRows[index] = { ...newRows[index], ...patch };
+    setRows(newRows);
+  };
+
+  const pendingCount = rows.filter((r) => r.pending).length;
+
   const handleNext = () => {
     const validRows = rows.filter((r) => r.rowNumber > 0 && r.locationName);
     updateSession(
@@ -181,6 +189,25 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
         <p><span className="font-semibold text-foreground">+ / −:</span> The adjustment is added to / subtracted from the current value.</p>
         <p><span className="font-semibold text-foreground">=:</span> The entered Hours Adj. / EFTE Adj. values <span className="font-semibold text-foreground">overwrite</span> Cur. Hours / Cur. EFTE as entered (for "own location"; for "all locations" the entered value is divided by {locationCount}).</p>
       </div>
+
+      {session.playbookSource && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-900 space-y-1">
+          <p className="font-semibold">
+            Rules loaded from the playbook{session.playbookSource.fileName ? ` ${session.playbookSource.fileName}` : ""}
+            {session.playbookSource.month ? ` (${session.playbookSource.month})` : ""} — please review every rule.
+          </p>
+          <p>
+            The amounts are empty on purpose: enter this month's Hours Adj. / EFTE Adj. (last month's are shown as "Prev."). Rows marked "Amount needed" are
+            still open{pendingCount > 0 ? ` (${pendingCount} of ${rows.length})` : " — none left"}; click the marker to confirm an amount as it is (e.g. a deliberate 0).
+          </p>
+          {session.playbookSource.locationCount !== locationCount && (
+            <p className="font-semibold">
+              Number of locations changed: the playbook had {session.playbookSource.locationCount}, now {locationCount} are uploaded — all-locations rules
+              divide by {locationCount}.
+            </p>
+          )}
+        </div>
+      )}
 
       <EfteCalculatorBlock />
 
@@ -233,7 +260,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   const isAllLocations = row.divisor > 0;
 
                   return (
-                    <TableRow key={index} className={isAllLocations ? "bg-amber-50/30" : ""}>
+                    <TableRow key={index} className={row.pending ? "bg-amber-50/70 border-l-4 border-l-amber-500" : isAllLocations ? "bg-amber-50/30" : ""}>
                       {/* Location */}
                       <TableCell>
                         <Select
@@ -249,8 +276,23 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                                 {loc}
                               </SelectItem>
                             ))}
+                            {row.locationName && !locations.includes(row.locationName) && (
+                              <SelectItem value={row.locationName} className="text-xs text-destructive">
+                                {row.locationName} (not uploaded)
+                              </SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
+                        {row.pending && (
+                          <button
+                            type="button"
+                            onClick={() => patchRow(index, { pending: false })}
+                            title="Click to confirm the amounts as they are"
+                            className="mt-1 block text-[10px] font-semibold text-amber-700 underline decoration-dotted"
+                          >
+                            Amount needed — click to confirm as is
+                          </button>
+                        )}
                       </TableCell>
 
                       {/* Row number */}
@@ -290,11 +332,14 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           value={row.hoursAdjustment}
                           onChange={(e) => {
                             const v = e.target.valueAsNumber;
-                            updateRow(index, "hoursAdjustment", isNaN(v) ? 0 : v);
+                            patchRow(index, { hoursAdjustment: isNaN(v) ? 0 : v, pending: false });
                           }}
                           className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           placeholder="0"
                         />
+                        {row.previousHoursAdjustment !== undefined && (
+                          <p className="mt-0.5 text-[10px] text-muted-foreground whitespace-nowrap">Prev. {fmt(row.previousHoursAdjustment)}</p>
+                        )}
                       </TableCell>
 
                       {/* EFTE adjustment */}
@@ -305,11 +350,14 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           value={row.efteAdjustment}
                           onChange={(e) => {
                             const v = e.target.valueAsNumber;
-                            updateRow(index, "efteAdjustment", isNaN(v) ? 0 : v);
+                            patchRow(index, { efteAdjustment: isNaN(v) ? 0 : v, pending: false });
                           }}
                           className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           placeholder="0"
                         />
+                        {row.previousEfteAdjustment !== undefined && (
+                          <p className="mt-0.5 text-[10px] text-muted-foreground whitespace-nowrap">Prev. {fmt(row.previousEfteAdjustment)}</p>
+                        )}
                       </TableCell>
 
                       {/* Scope: divisor 0 = own location, > 0 = all locations (÷ number of locations) */}

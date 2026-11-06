@@ -54,7 +54,10 @@ export const GetSessionResponse = zod.object({
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
   "divisor": zod.number(),
-  "remarks": zod.string().optional()
+  "remarks": zod.string().optional(),
+  "pending": zod.boolean().optional().describe('True while the amounts (Hours Adj. \/ EFTE Adj.) of a rule loaded from a playbook have not been entered or confirmed for this month. Raises a warning before export.\n'),
+  "previousHoursAdjustment": zod.number().optional().describe('Last month\'s amount, shown as a reference only.'),
+  "previousEfteAdjustment": zod.number().optional()
 })),
   "karenzEntries": zod.array(zod.object({
   "kind": zod.enum(['karenz', 'cluster']),
@@ -65,6 +68,11 @@ export const GetSessionResponse = zod.object({
   "efte": zod.number().optional(),
   "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
 }).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
+  "playbookSource": zod.object({
+  "month": zod.string().optional(),
+  "locationCount": zod.number().describe('Number of locations the playbook\'s month had.'),
+  "fileName": zod.string().optional()
+}).optional().describe('Where the rules of this session were loaded from (last month\'s playbook).'),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
 })
 
@@ -88,7 +96,10 @@ export const UpdateSessionBody = zod.object({
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
   "divisor": zod.number(),
-  "remarks": zod.string().optional()
+  "remarks": zod.string().optional(),
+  "pending": zod.boolean().optional().describe('True while the amounts (Hours Adj. \/ EFTE Adj.) of a rule loaded from a playbook have not been entered or confirmed for this month. Raises a warning before export.\n'),
+  "previousHoursAdjustment": zod.number().optional().describe('Last month\'s amount, shown as a reference only.'),
+  "previousEfteAdjustment": zod.number().optional()
 })).optional(),
   "karenzEntries": zod.array(zod.object({
   "kind": zod.enum(['karenz', 'cluster']),
@@ -98,7 +109,12 @@ export const UpdateSessionBody = zod.object({
   "hours": zod.number().optional(),
   "efte": zod.number().optional(),
   "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
-}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')).optional()
+}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')).optional(),
+  "playbookSource": zod.object({
+  "month": zod.string().optional(),
+  "locationCount": zod.number().describe('Number of locations the playbook\'s month had.'),
+  "fileName": zod.string().optional()
+}).optional().describe('Where the rules of this session were loaded from (last month\'s playbook).')
 })
 
 export const UpdateSessionResponse = zod.object({
@@ -121,7 +137,10 @@ export const UpdateSessionResponse = zod.object({
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
   "divisor": zod.number(),
-  "remarks": zod.string().optional()
+  "remarks": zod.string().optional(),
+  "pending": zod.boolean().optional().describe('True while the amounts (Hours Adj. \/ EFTE Adj.) of a rule loaded from a playbook have not been entered or confirmed for this month. Raises a warning before export.\n'),
+  "previousHoursAdjustment": zod.number().optional().describe('Last month\'s amount, shown as a reference only.'),
+  "previousEfteAdjustment": zod.number().optional()
 })),
   "karenzEntries": zod.array(zod.object({
   "kind": zod.enum(['karenz', 'cluster']),
@@ -132,6 +151,11 @@ export const UpdateSessionResponse = zod.object({
   "efte": zod.number().optional(),
   "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
 }).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
+  "playbookSource": zod.object({
+  "month": zod.string().optional(),
+  "locationCount": zod.number().describe('Number of locations the playbook\'s month had.'),
+  "fileName": zod.string().optional()
+}).optional().describe('Where the rules of this session were loaded from (last month\'s playbook).'),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
 })
 
@@ -167,7 +191,10 @@ export const UploadFilesResponse = zod.object({
   "hoursAdjustment": zod.number(),
   "efteAdjustment": zod.number(),
   "divisor": zod.number(),
-  "remarks": zod.string().optional()
+  "remarks": zod.string().optional(),
+  "pending": zod.boolean().optional().describe('True while the amounts (Hours Adj. \/ EFTE Adj.) of a rule loaded from a playbook have not been entered or confirmed for this month. Raises a warning before export.\n'),
+  "previousHoursAdjustment": zod.number().optional().describe('Last month\'s amount, shown as a reference only.'),
+  "previousEfteAdjustment": zod.number().optional()
 })),
   "karenzEntries": zod.array(zod.object({
   "kind": zod.enum(['karenz', 'cluster']),
@@ -178,6 +205,11 @@ export const UploadFilesResponse = zod.object({
   "efte": zod.number().optional(),
   "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
 }).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
+  "playbookSource": zod.object({
+  "month": zod.string().optional(),
+  "locationCount": zod.number().describe('Number of locations the playbook\'s month had.'),
+  "fileName": zod.string().optional()
+}).optional().describe('Where the rules of this session were loaded from (last month\'s playbook).'),
   "status": zod.enum(['empty', 'uploaded', 'configured', 'exported'])
 })
 

@@ -41,6 +41,22 @@ export interface ModifyRowConfig {
   efteAdjustment: number;
   divisor: number;
   remarks?: string;
+  /** True while the amounts (Hours Adj. / EFTE Adj.) of a rule loaded from a playbook have not been entered or confirmed for this month. Raises a warning before export.
+   */
+  pending?: boolean;
+  /** Last month's amount, shown as a reference only. */
+  previousHoursAdjustment?: number;
+  previousEfteAdjustment?: number;
+}
+
+/**
+ * Where the rules of this session were loaded from (last month's playbook).
+ */
+export interface PlaybookSource {
+  month?: string;
+  /** Number of locations the playbook's month had. */
+  locationCount: number;
+  fileName?: string;
 }
 
 export type KarenzEntryKind = typeof KarenzEntryKind[keyof typeof KarenzEntryKind];
@@ -84,6 +100,7 @@ export interface Session {
   deleteRows: DeleteRowConfig[];
   modifyRows: ModifyRowConfig[];
   karenzEntries: KarenzEntry[];
+  playbookSource?: PlaybookSource;
   status: SessionStatus;
 }
 
@@ -93,6 +110,7 @@ export interface SessionUpdate {
   deleteRows?: DeleteRowConfig[];
   modifyRows?: ModifyRowConfig[];
   karenzEntries?: KarenzEntry[];
+  playbookSource?: PlaybookSource;
 }
 
 export interface PreviewDeleteRow {

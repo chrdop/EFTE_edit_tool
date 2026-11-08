@@ -112,6 +112,7 @@ export function generateReportPdf(
   lines.push(`Month     : ${session.selectedMonth ?? "-"}`);
   lines.push(`Locations : ${session.files.length}`);
   lines.push(`Generated : ${dateStr}`);
+  lines.push(`Created by: EFTE Merge & Edit Tool v${__APP_VERSION__}`);
   lines.push(line("="));
   lines.push("");
 

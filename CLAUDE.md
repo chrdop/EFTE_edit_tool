@@ -63,7 +63,7 @@ Every export's `Change_Report_<Month>.txt` doubles as next month's playbook: bes
 
 ## App version
 
-The version shown in the header (`Wizard.tsx`, e.g. `v1.1.0`) comes from `version` in `artifacts/excel-tool/package.json` — the single source. `vite.config.ts` injects it as `import.meta.env.VITE_APP_VERSION` via `define`. It is bumped by hand; ask the user when a bump is wanted.
+The version shown in the header (`Wizard.tsx`, e.g. `v1.1.0`) comes from `version` in `artifacts/excel-tool/package.json` — the single source. `vite.config.ts` injects it as `import.meta.env.VITE_APP_VERSION` via `define`. It is bumped by hand; ask the user when a bump is wanted. The api-server gets the same value at build time (`build.mjs` reads `artifacts/excel-tool/package.json` and injects `__APP_VERSION__` via esbuild `define`, declared in `src/app-version.d.ts`); the change report prints it as "Created by: … vX.Y.Z".
 
 ## Local dev on Windows
 

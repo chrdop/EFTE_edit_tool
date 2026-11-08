@@ -3,12 +3,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
+import { readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
+
+// Single source of the app version: the excel-tool package.json (also shown in the header).
+const appVersion = JSON.parse(readFileSync(path.resolve(artifactDir, "../excel-tool/package.json"), "utf-8")).version;
 
 async function buildAll() {
   const distDir = path.resolve(artifactDir, "dist");
@@ -102,6 +106,7 @@ async function buildAll() {
       "electron",
     ],
     sourcemap: "linked",
+    define: { __APP_VERSION__: JSON.stringify(appVersion) },
     plugins: [
       // pino relies on workers to handle logging, instead of externalizing it we use a plugin to handle it
       esbuildPluginPino({ transports: ["pino-pretty"] })

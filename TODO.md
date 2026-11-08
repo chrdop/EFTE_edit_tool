@@ -2,6 +2,21 @@
 
 Running handoff notes across sessions — what's done, what's open, where to pick up next time.
 
+## 2026-11-08
+
+**Done today:**
+- **Step 3 wording and a third entry type** (`f0cbd0f`, **version 1.2.0**): first block now "Rows to clear — global (every location)"; the Karenz block is "Parental leave / other cluster / reallocation" (English UI). New kind `reallocation` ("Umbuchung"): subtracts hours/EFTE like parental leave (no return month); the person is then assigned again via adjustment rules in Step 4. Shown in the "− Removed" column (Step 4), remarks (Step 5), the change report and the playbook; old playbooks still load. Internal names stay `karenz`/`karenzEntries`. Labels come from `kindLabel` in `removals.ts`. Details in `CLAUDE.md`.
+- **App version in the change report** (`75eeeef`, **version 1.2.1**): header line "Created by: EFTE Merge & Edit Tool vX.Y.Z"; the api-server reads the version from `excel-tool/package.json` at build time (esbuild `define`). Playbook JSON unchanged.
+- **`TODO.md` sanitized:** employee first names and a real figure removed (hotel-app-standards: no personal data/real numbers in Git). GitHub repo is private, so the history was left as is.
+- **Tests:** API assertions all pass (77 before 1.2.1 plus the report/playbook/reallocation scripts again after it), full browser walk-through (login → upload → Steps 3–5, third type, loading the October playbook), no console errors.
+- Both versions are pushed, pulled in Replit and **republished; the user confirmed 1.2.0 and 1.2.1 live and working** ("alle Änderungen umgesetzt").
+
+**Open / not done:** the list from 2026-11-06 below still applies, except that the 1.1.1 Republish is done.
+
+**Where to continue next session:**
+- Ask how the first real November run with the playbook went, and whether a further request file (`Bugs/ModnBug4.odt`) is waiting.
+- Then the open questions below: automated API test suite in the repo (scripts only exist in a session scratchpad), calculator → rule button, version policy, `=` with a 0 field, Reference "Holiday hours", Sum decimals, hotel-design-leonardo, "Punkt 3" landing page.
+
 ## 2026-11-06 (work started late on 11-05)
 
 **Done today:**
@@ -14,7 +29,7 @@ Running handoff notes across sessions — what's done, what's open, where to pic
 - Everything is committed and pushed (last commit `27dcaaa`).
 
 **Open / not done (current list, supersedes the older ones below):**
-- **Republish of 1.1.1 not confirmed yet.** Replit workspace: `git pull --rebase origin main`, then Republish; check that the header shows `v1.1.1`.
+- ~~Republish of 1.1.1~~ — done (confirmed 2026-11-08, now at 1.2.1).
 - **The test scripts are not in the repo.** They lived only in the session scratchpad (login → upload the 9 dummy files → rules → preview/export). Decide whether to add a small automated API test suite; the app still has none. Note: `EFTE_Dummy` only has the Jan–May columns, so tests must process **May** (October/November data can't be tested locally).
 - **Staff EFTE calculator → rule amounts:** the results are typed into the rules by hand. I offered to look at a "copy into rule" button; no answer yet.
 - **Version policy** is de facto: bumped when the user asks (1.1.0 for the feature set, 1.1.1 for the follow-up fixes). Confirm this is the intended rule.

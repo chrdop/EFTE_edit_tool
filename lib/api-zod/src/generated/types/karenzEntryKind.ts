@@ -11,4 +11,5 @@ export type KarenzEntryKind = typeof KarenzEntryKind[keyof typeof KarenzEntryKin
 export const KarenzEntryKind = {
   karenz: 'karenz',
   cluster: 'cluster',
+  reallocation: 'reallocation',
 } as const;

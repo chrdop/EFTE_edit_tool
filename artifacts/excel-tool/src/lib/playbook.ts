@@ -19,7 +19,7 @@ const playbookSchema = z.object({
   karenzEntries: z
     .array(
       z.object({
-        kind: z.enum(["karenz", "cluster"]),
+        kind: z.enum(["karenz", "cluster", "reallocation"]),
         name: text.optional().default(""),
         locationName: text,
         rowNumber,
@@ -92,13 +92,13 @@ export function playbookToSessionUpdate(
       k.kind === "cluster"
         ? { kind: KarenzEntryKind.cluster, name: k.name, locationName: k.locationName, rowNumber: k.rowNumber }
         : {
-            kind: KarenzEntryKind.karenz,
+            kind: k.kind === "reallocation" ? KarenzEntryKind.reallocation : KarenzEntryKind.karenz,
             name: k.name,
             locationName: k.locationName,
             rowNumber: k.rowNumber,
             hours: k.hours ?? 0,
             efte: k.efte ?? 0,
-            ...(k.returnMonth ? { returnMonth: k.returnMonth } : {}),
+            ...(k.kind === "karenz" && k.returnMonth ? { returnMonth: k.returnMonth } : {}),
           },
     ),
     modifyRows: pb.rules.map((r) => ({

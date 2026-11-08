@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 import type { UploadedFile, DeleteRowConfig, ModifyRowConfig, KarenzEntry, PlaybookSource } from "./sessionStore.js";
-import { applyRemoval, buildRemovalMap, describeRemoval, removalKey, round2, type RowRemoval } from "./removals.js";
+import { applyRemoval, buildRemovalMap, describeRemoval, kindLabel, removalKey, round2, type RowRemoval } from "./removals.js";
 
 const CANONICAL_MONTHS = [
   "January","February","March","April","May","June",
@@ -362,7 +362,7 @@ function buildRemovalWarnings(args: {
   const warnings: string[] = [];
   const known = new Set(files.map((f) => f.locationName));
   const label = (e: KarenzEntry) =>
-    `${e.kind === "cluster" ? "Other cluster" : "Karenz"} "${e.name?.trim() || "(no name)"}" (${e.locationName}, row ${e.rowNumber})`;
+    `${kindLabel(e.kind)} "${e.name?.trim() || "(no name)"}" (${e.locationName}, row ${e.rowNumber})`;
   const negativeChecked = new Set<string>();
 
   for (const e of karenzEntries) {
@@ -389,11 +389,12 @@ function buildRemovalWarnings(args: {
 
     const key = removalKey(e.locationName, e.rowNumber);
     const orig = originals.get(key);
-    if (e.kind === "karenz" && orig && orig.hours === null && orig.efte === null) {
+    // Entries that subtract amounts (parental leave, reallocation) need a value to subtract from
+    if (e.kind !== "cluster" && orig && orig.hours === null && orig.efte === null) {
       warnings.push(`${label(e)}: the cell has no value — nothing to subtract.`);
     }
     const removal = removals.get(key);
-    if (e.kind === "karenz" && orig && removal && !removal.clusterRemoved && !negativeChecked.has(key)) {
+    if (e.kind !== "cluster" && orig && removal && !removal.clusterRemoved && !negativeChecked.has(key)) {
       negativeChecked.add(key);
       const h = applyRemoval(orig.hours, removal, "hours");
       const f = applyRemoval(orig.efte, removal, "efte");

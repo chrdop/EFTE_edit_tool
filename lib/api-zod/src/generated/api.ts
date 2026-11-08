@@ -60,14 +60,14 @@ export const GetSessionResponse = zod.object({
   "previousEfteAdjustment": zod.number().optional()
 })),
   "karenzEntries": zod.array(zod.object({
-  "kind": zod.enum(['karenz', 'cluster']),
+  "kind": zod.enum(['karenz', 'cluster', 'reallocation']),
   "name": zod.string().optional(),
   "locationName": zod.string(),
   "rowNumber": zod.number(),
   "hours": zod.number().optional(),
   "efte": zod.number().optional(),
   "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
-}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
+}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" (shown as \"Parental leave\") and kind \"reallocation\" (booked away from this cost center, to be assigned again with adjustment rules) both subtract the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
   "playbookSource": zod.object({
   "month": zod.string().optional(),
   "locationCount": zod.number().describe('Number of locations the playbook\'s month had.'),
@@ -102,14 +102,14 @@ export const UpdateSessionBody = zod.object({
   "previousEfteAdjustment": zod.number().optional()
 })).optional(),
   "karenzEntries": zod.array(zod.object({
-  "kind": zod.enum(['karenz', 'cluster']),
+  "kind": zod.enum(['karenz', 'cluster', 'reallocation']),
   "name": zod.string().optional(),
   "locationName": zod.string(),
   "rowNumber": zod.number(),
   "hours": zod.number().optional(),
   "efte": zod.number().optional(),
   "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
-}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')).optional(),
+}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" (shown as \"Parental leave\") and kind \"reallocation\" (booked away from this cost center, to be assigned again with adjustment rules) both subtract the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')).optional(),
   "playbookSource": zod.object({
   "month": zod.string().optional(),
   "locationCount": zod.number().describe('Number of locations the playbook\'s month had.'),
@@ -143,14 +143,14 @@ export const UpdateSessionResponse = zod.object({
   "previousEfteAdjustment": zod.number().optional()
 })),
   "karenzEntries": zod.array(zod.object({
-  "kind": zod.enum(['karenz', 'cluster']),
+  "kind": zod.enum(['karenz', 'cluster', 'reallocation']),
   "name": zod.string().optional(),
   "locationName": zod.string(),
   "rowNumber": zod.number(),
   "hours": zod.number().optional(),
   "efte": zod.number().optional(),
   "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
-}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
+}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" (shown as \"Parental leave\") and kind \"reallocation\" (booked away from this cost center, to be assigned again with adjustment rules) both subtract the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
   "playbookSource": zod.object({
   "month": zod.string().optional(),
   "locationCount": zod.number().describe('Number of locations the playbook\'s month had.'),
@@ -197,14 +197,14 @@ export const UploadFilesResponse = zod.object({
   "previousEfteAdjustment": zod.number().optional()
 })),
   "karenzEntries": zod.array(zod.object({
-  "kind": zod.enum(['karenz', 'cluster']),
+  "kind": zod.enum(['karenz', 'cluster', 'reallocation']),
   "name": zod.string().optional(),
   "locationName": zod.string(),
   "rowNumber": zod.number(),
   "hours": zod.number().optional(),
   "efte": zod.number().optional(),
   "returnMonth": zod.string().optional().describe('Optional return month as YYYY-MM (karenz only); only used for a warning.')
-}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" subtracts the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
+}).describe('A person whose hours\/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind \"karenz\" (shown as \"Parental leave\") and kind \"reallocation\" (booked away from this cost center, to be assigned again with adjustment rules) both subtract the entered hours and EFTE; kind \"cluster\" (person belongs to another cluster) sets the row to 0.\n')),
   "playbookSource": zod.object({
   "month": zod.string().optional(),
   "locationCount": zod.number().describe('Number of locations the playbook\'s month had.'),

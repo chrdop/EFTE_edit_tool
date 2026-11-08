@@ -28,7 +28,7 @@ export function KarenzBlock({ entries, onChange, locations }: KarenzBlockProps) 
       <div className="bg-muted/40 p-4 border-b flex items-center justify-between">
         <div className="flex items-center space-x-2 text-sm font-semibold text-foreground">
           <UserMinus className="w-4 h-4 text-muted-foreground" />
-          <span>Karenz / other cluster</span>
+          <span>Parental leave / other cluster / reallocation</span>
         </div>
         <Button onClick={() => onChange([...entries, newKarenzEntry(locations[0] ?? "")])} size="sm" variant="secondary" className="h-8">
           <Plus className="w-4 h-4 mr-1" />
@@ -38,9 +38,11 @@ export function KarenzBlock({ entries, onChange, locations }: KarenzBlockProps) 
 
       <p className="px-4 pt-3 text-xs text-muted-foreground">
         People who are taken out of the <span className="font-semibold text-foreground">original values</span> of one row at one location, before the
-        adjustment rules run. <span className="font-semibold text-foreground">Karenz</span>: the entered hours and EFTE are subtracted.{" "}
-        <span className="font-semibold text-foreground">Other cluster</span>: the row at that location is set to 0. The effect shows up in the next step
-        (columns "− Karenz" and "Basis"). Entries are carried over to the next month's playbook.
+        adjustment rules run. <span className="font-semibold text-foreground">Parental leave</span>: the entered hours and EFTE are subtracted.{" "}
+        <span className="font-semibold text-foreground">Other cluster</span>: the row at that location is set to 0.{" "}
+        <span className="font-semibold text-foreground">Reallocation</span>: the entered hours and EFTE are subtracted from this row, then assigned again
+        (to another row, or split) with adjustment rules in the next step. The effect shows up in the next step (columns "− Removed" and "Basis"). Entries
+        are carried over to the next month's playbook.
       </p>
 
       {entries.length === 0 ? (
@@ -63,16 +65,29 @@ export function KarenzBlock({ entries, onChange, locations }: KarenzBlockProps) 
             <TableBody>
               {entries.map((entry, index) => {
                 const isCluster = entry.kind === KarenzEntryKind.cluster;
+                const isLeave = entry.kind === KarenzEntryKind.karenz;
                 return (
                   <TableRow key={index}>
                     <TableCell>
-                      <Select value={entry.kind} onValueChange={(val) => update(index, "kind", val as KarenzEntryKind)}>
-                        <SelectTrigger className="text-xs min-w-[120px]">
+                      <Select
+                        value={entry.kind}
+                        onValueChange={(val) =>
+                          onChange(
+                            entries.map((e, i) =>
+                              i === index
+                                ? { ...e, kind: val as KarenzEntryKind, ...(val !== KarenzEntryKind.karenz ? { returnMonth: undefined } : {}) }
+                                : e,
+                            ),
+                          )
+                        }
+                      >
+                        <SelectTrigger className="text-xs min-w-[140px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={KarenzEntryKind.karenz} className="text-xs">Karenz</SelectItem>
+                          <SelectItem value={KarenzEntryKind.karenz} className="text-xs">Parental leave</SelectItem>
                           <SelectItem value={KarenzEntryKind.cluster} className="text-xs">Other cluster</SelectItem>
+                          <SelectItem value={KarenzEntryKind.reallocation} className="text-xs">Reallocation</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -134,8 +149,8 @@ export function KarenzBlock({ entries, onChange, locations }: KarenzBlockProps) 
                     <TableCell>
                       <Input
                         type="month"
-                        disabled={isCluster}
-                        value={isCluster ? "" : (entry.returnMonth ?? "")}
+                        disabled={!isLeave}
+                        value={isLeave ? (entry.returnMonth ?? "") : ""}
                         onChange={(e) => update(index, "returnMonth", e.target.value || undefined)}
                         className="w-full text-xs"
                       />

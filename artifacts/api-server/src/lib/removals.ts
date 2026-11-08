@@ -53,7 +53,13 @@ export function applyRemoval(
   return round2(original - (field === "hours" ? removal.karenzHours : removal.karenzEfte));
 }
 
+/** Display label of an entry kind ("karenz" is shown as "Parental leave"). */
+export function kindLabel(kind: KarenzEntry["kind"]): string {
+  if (kind === "cluster") return "Other cluster";
+  if (kind === "reallocation") return "Reallocation";
+  return "Parental leave";
+}
+
 export function describeRemoval(removal: RowRemoval): string {
-  const label = (e: KarenzEntry) => `${e.kind === "cluster" ? "Other cluster" : "Karenz"}: ${e.name?.trim() || "(no name)"}`;
-  return removal.entries.map(label).join(", ");
+  return removal.entries.map((e) => `${kindLabel(e.kind)}: ${e.name?.trim() || "(no name)"}`).join(", ");
 }

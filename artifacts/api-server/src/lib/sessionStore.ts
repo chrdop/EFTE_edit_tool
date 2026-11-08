@@ -38,11 +38,12 @@ export interface PlaybookSource {
 
 /**
  * A person taken out of the original values of one row at one location before the
- * adjustment rules run. "karenz" subtracts hours/EFTE; "cluster" (person belongs to
- * another cluster) sets the row to 0.
+ * adjustment rules run. "karenz" (UI: "Parental leave") and "reallocation" (booked away
+ * from this cost center, assigned again by adjustment rules) subtract hours/EFTE;
+ * "cluster" (person belongs to another cluster) sets the row to 0.
  */
 export interface KarenzEntry {
-  kind: "karenz" | "cluster";
+  kind: "karenz" | "cluster" | "reallocation";
   name?: string;
   locationName: string;
   rowNumber: number;

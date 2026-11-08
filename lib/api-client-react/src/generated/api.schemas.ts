@@ -65,10 +65,11 @@ export type KarenzEntryKind = typeof KarenzEntryKind[keyof typeof KarenzEntryKin
 export const KarenzEntryKind = {
   karenz: 'karenz',
   cluster: 'cluster',
+  reallocation: 'reallocation',
 } as const;
 
 /**
- * A person whose hours/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind "karenz" subtracts the entered hours and EFTE; kind "cluster" (person belongs to another cluster) sets the row to 0.
+ * A person whose hours/EFTE are taken out of the original values of one row at one location before the adjustment rules run. kind "karenz" (shown as "Parental leave") and kind "reallocation" (booked away from this cost center, to be assigned again with adjustment rules) both subtract the entered hours and EFTE; kind "cluster" (person belongs to another cluster) sets the row to 0.
 
  */
 export interface KarenzEntry {

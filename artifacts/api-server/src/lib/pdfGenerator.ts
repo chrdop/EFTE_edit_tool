@@ -1,4 +1,5 @@
 import type { Session } from "../lib/sessionStore.js";
+import { kindLabel } from "./removals.js";
 
 interface PreviewDeleteRow {
   rowNumber: number;
@@ -54,7 +55,7 @@ function buildPlaybook(session: Session) {
       name: k.name ?? "",
       locationName: k.locationName,
       rowNumber: k.rowNumber,
-      ...(k.kind === "karenz" ? { hours: k.hours ?? 0, efte: k.efte ?? 0 } : {}),
+      ...(k.kind !== "cluster" ? { hours: k.hours ?? 0, efte: k.efte ?? 0 } : {}),
       ...(k.kind === "karenz" && k.returnMonth ? { returnMonth: k.returnMonth } : {}),
     })),
     rules: session.modifyRows.map((r) => ({
@@ -192,7 +193,7 @@ export function generateReportPdf(
   }
 
   // ── Removed persons ────────────────────────────────────────────────────
-  lines.push("KARENZ / OTHER CLUSTER  (taken out of the original values before the rules)");
+  lines.push("PARENTAL LEAVE / OTHER CLUSTER / REALLOCATION  (taken out of the original values before the rules)");
   lines.push(line("-"));
   if (session.karenzEntries.length === 0) {
     lines.push("No entries.");
@@ -201,8 +202,8 @@ export function generateReportPdf(
     for (const k of session.karenzEntries) {
       const isCluster = k.kind === "cluster";
       lines.push(
-        `${col(isCluster ? "Other cluster" : "Karenz", 15)}${col(k.name?.trim() || "-", 18)}${col(String(k.rowNumber), 6)}` +
-          `${col(isCluster ? "row -> 0" : fmt(k.hours ?? 0), 10)}${col(isCluster ? "" : fmt(k.efte ?? 0), 8)}${col(isCluster ? "" : k.returnMonth ?? "", 9)}${k.locationName}`,
+        `${col(kindLabel(k.kind), 15)}${col(k.name?.trim() || "-", 18)}${col(String(k.rowNumber), 6)}` +
+          `${col(isCluster ? "row -> 0" : fmt(k.hours ?? 0), 10)}${col(isCluster ? "" : fmt(k.efte ?? 0), 8)}${col(k.kind === "karenz" ? k.returnMonth ?? "" : "", 9)}${k.locationName}`,
       );
     }
   }

@@ -66,7 +66,7 @@ export function StepDeleteRows({ session, sessionId, onNext, onBack, refreshSess
         <div className="bg-muted/40 p-4 border-b flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm font-semibold text-foreground">
             <Trash2 className="w-4 h-4 text-muted-foreground" />
-            <span>Rows to clear</span>
+            <span>Rows to clear — global (every location)</span>
           </div>
           <Button onClick={addRow} size="sm" variant="secondary" className="h-8">
             <Plus className="w-4 h-4 mr-1" />

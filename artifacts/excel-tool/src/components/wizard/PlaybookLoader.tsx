@@ -66,8 +66,8 @@ export function PlaybookLoader({ session, sessionId, refreshSession }: PlaybookL
 
       <div className="p-4 space-y-3 text-sm">
         <p className="text-xs text-muted-foreground">
-          Choose last month's change report (<span className="font-mono">Change_Report_….txt</span>). It pre-fills the delete rows, the Karenz / other-cluster
-          entries and the adjustment rules for you to review in steps 3 and 4. The amounts stay empty on purpose — enter them again for this month (rules that only
+          Choose last month's change report (<span className="font-mono">Change_Report_….txt</span>). It pre-fills the delete rows, the parental leave / other-cluster /
+          reallocation entries and the adjustment rules for you to review in steps 3 and 4. The amounts stay empty on purpose — enter them again for this month (rules that only
           redistribute a source value, i.e. "+" / "−" with 0 amounts last month, come in as confirmed). Loading replaces anything already entered in those steps.
         </p>
 
@@ -87,8 +87,8 @@ export function PlaybookLoader({ session, sessionId, refreshSession }: PlaybookL
               {source.month ? ` (${source.month}, ${source.locationCount} locations)` : ""}
             </AlertTitle>
             <AlertDescription>
-              {session.modifyRows.length} rule(s), {session.deleteRows.length} delete row(s) and {session.karenzEntries.length} Karenz / other-cluster
-              entr{session.karenzEntries.length === 1 ? "y" : "ies"} are in this session now. Review them in steps 3 and 4.
+              {session.modifyRows.length} rule(s), {session.deleteRows.length} delete row(s) and {session.karenzEntries.length} person
+              entr{session.karenzEntries.length === 1 ? "y" : "ies"} (parental leave / other cluster / reallocation) are in this session now. Review them in steps 3 and 4.
             </AlertDescription>
           </Alert>
         )}

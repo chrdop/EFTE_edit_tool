@@ -166,7 +166,8 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
       .reduce((map, k) => {
         const key = `${k.locationName}:${k.rowNumber}`;
         const prev = map.get(key);
-        const who = `${k.kind === "cluster" ? "Other cluster" : "Karenz"}: ${k.name?.trim() || "(no name)"}`;
+        const kindLabel = k.kind === "cluster" ? "Other cluster" : k.kind === "reallocation" ? "Reallocation" : "Parental leave";
+        const who = `${kindLabel}: ${k.name?.trim() || "(no name)"}`;
         map.set(key, { key, locationName: k.locationName, rowNumber: k.rowNumber, who: prev ? `${prev.who}, ${who}` : who });
         return map;
       }, new Map<string, { key: string; locationName: string; rowNumber: number; who: string }>())
@@ -241,7 +242,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   <TableHead className="min-w-[150px]">Scope</TableHead>
                   <TableHead className="bg-blue-50/60 border-l text-blue-700/80 text-xs whitespace-nowrap">Cur. Hours</TableHead>
                   <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
-                  <TableHead className="bg-rose-50/60 border-l text-rose-700/80 text-xs whitespace-nowrap">− Karenz (Hours / EFTE)</TableHead>
+                  <TableHead className="bg-rose-50/60 border-l text-rose-700/80 text-xs whitespace-nowrap">− Removed (Hours / EFTE)</TableHead>
                   <TableHead className="bg-rose-50/60 text-rose-700/80 text-xs whitespace-nowrap">Basis (Hours / EFTE)</TableHead>
                   <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
                   <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">New EFTE</TableHead>
@@ -442,7 +443,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
         <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
           <div className="bg-rose-50/60 px-4 py-3 border-b flex items-center gap-2 text-sm font-semibold text-rose-800">
             <UserMinus className="w-4 h-4" />
-            <span>Rows changed by Karenz / other cluster only (no adjustment rule)</span>
+            <span>Rows changed by parental leave / other cluster / reallocation only (no adjustment rule)</span>
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -453,6 +454,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   <TableHead className="min-w-[200px]">Who</TableHead>
                   <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. Hours</TableHead>
                   <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
+                  <TableHead className="bg-rose-50/60 border-l text-rose-700/80 text-xs whitespace-nowrap">− Removed (Hours / EFTE)</TableHead>
                   <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
                   <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">New EFTE</TableHead>
                 </TableRow>
@@ -467,6 +469,9 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                       <TableCell className="text-xs">{k.who}</TableCell>
                       <TableCell className="bg-blue-50/60 text-xs font-mono text-blue-800 whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.hours)}</TableCell>
                       <TableCell className="bg-blue-50/60 text-xs font-mono text-blue-800 whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.efte)}</TableCell>
+                      <TableCell className="bg-rose-50/60 border-l text-xs font-mono text-rose-800 whitespace-nowrap">
+                        {isFetchingValues ? "…" : cv?.clusterRemoved ? "row → 0" : `${fmt(cv?.karenzHours)} / ${fmt(cv?.karenzEfte)}`}
+                      </TableCell>
                       <TableCell className="bg-primary/5 border-l text-xs font-mono font-semibold text-primary whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.baseHours)}</TableCell>
                       <TableCell className="bg-primary/5 text-xs font-mono font-semibold text-primary whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.baseEfte)}</TableCell>
                     </TableRow>

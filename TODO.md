@@ -2,6 +2,18 @@
 
 Running handoff notes across sessions — what's done, what's open, where to pick up next time.
 
+## 2026-11-12
+
+**Done today:**
+- **Gold/black design applied** (**version 1.3.0**, not yet pushed/republished at the time of writing): the tool now uses the `hotel-design-gold` look instead of the default blue one. Dark only. All hex values live in `src/styles/tokens.css`; `index.css` maps shadcn's colour slots onto them (gold = primary; new `gold`/`ok`/`bad` status colours). `AccentLine.tsx` draws the gold corner line behind the content. All hard-coded Tailwind palette colours were replaced (the "− Removed"/"Basis" columns in Step 4 were the last ones, found in the browser). Inter now comes from `@fontsource/inter` (no Google Fonts link), favicon is a gold square with "XT". Details in `CLAUDE.md` ("Design").
+- **Fixes found while checking in the browser:** the inner table scrollbars were light (`color-scheme: dark` added in `index.css`); at 375 px the step labels overlapped and the page scrolled sideways (labels are hidden below `sm`, a "Step N of 5 · name" line replaces them).
+- **Checked:** login, Steps 1–5 on desktop, 375 px width, focus ring, console without errors, `pnpm --filter @workspace/excel-tool run typecheck` clean. Not checked: the warning boxes in Step 5 with real warnings (the 3 dummy files produced none), the export dialog.
+
+**Open / not done:**
+- Push, then Republish for 1.3.0 (user's go).
+- Local dev note: `vite dev` needed the three Windows native packages matching the *installed* rollup / lightningcss / oxide versions (4.60.3 / 1.32.0 / 4.3.0); they were put straight into `node_modules/.pnpm` (nothing in `package.json`/lockfile), so a fresh `pnpm install` may need that again.
+- Feedback for the `hotel-design-gold` skill is collected in the chat of this session (tokens file vs. Tailwind/shadcn, mono font, hex in the SVG, warning colour, tables, local font, favicon).
+
 ## 2026-11-08
 
 **Done today:**
@@ -36,7 +48,7 @@ Running handoff notes across sessions — what's done, what's open, where to pic
 - **`=` mode with a field left at 0 writes 0** for manually created rules (loaded playbook rules are protected by "Amount needed"). Decide whether an empty field should mean "leave untouched".
 - **Reference row's "Holiday hours" input affects nothing**; keep, remove, or give it a role?
 - Sum EFTE shows `3,1`, not `3,10` — fixed two decimals wanted?
-- **Design:** `hotel-design-leonardo` (design system for internal Leonardo hotel tools) exists as a skill; not applied, the tool still has the default blue look. Should the EFTE tool adopt it?
+- ~~**Design:** `hotel-design-leonardo` …~~ — done 2026-11-12: the tool uses the gold/black `hotel-design-gold` look (1.3.0).
 - Still deferred: **"Punkt 3"** (shared landing page linking the webapps).
 
 **Where to continue next session:**

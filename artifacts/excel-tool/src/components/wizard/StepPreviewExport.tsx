@@ -137,7 +137,7 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
           )}
 
           {hasWarnings && (
-            <Alert className="border-amber-300 bg-amber-50 text-amber-900 [&>svg]:text-amber-700">
+            <Alert className="border-gold/40 bg-gold/10 text-foreground [&>svg]:text-gold">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>{previewData!.warnings.length} warning(s) — please check before exporting</AlertTitle>
               <AlertDescription>
@@ -152,12 +152,12 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
 
           {hasDeletes && (
             <div className="border rounded-lg overflow-hidden shadow-sm">
-              <div className="bg-red-50/60 px-4 py-3 border-b flex items-center gap-2">
-                <FileText className="w-4 h-4 text-red-500" />
-                <span className="text-sm font-semibold text-red-700">Rows to be deleted</span>
+              <div className="bg-bad/10 px-4 py-3 border-b flex items-center gap-2">
+                <FileText className="w-4 h-4 text-bad" />
+                <span className="text-sm font-semibold text-bad">Rows to be deleted</span>
               </div>
               {clearedThenWrittenRows.length > 0 && (
-                <p className="px-4 py-2 text-xs border-b bg-amber-50/60 text-amber-900">
+                <p className="px-4 py-2 text-xs border-b bg-gold/10 text-foreground">
                   Row{clearedThenWrittenRows.length > 1 ? "s" : ""} {clearedThenWrittenRows.join(", ")} {clearedThenWrittenRows.length > 1 ? "are" : "is"} cleared first and then
                   written again by an adjustment rule — the rule's value is what ends up in the file (see "Rows to be adjusted").
                 </p>
@@ -168,8 +168,8 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
                     <TableRow className="bg-muted/20">
                       <TableHead className="text-xs">Row</TableHead>
                       <TableHead className="text-xs">Location</TableHead>
-                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Cur. Hours</TableHead>
-                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Cur. EFTE</TableHead>
+                      <TableHead className="text-right bg-muted/60 text-muted-foreground text-xs">Cur. Hours</TableHead>
+                      <TableHead className="text-right bg-muted/60 text-muted-foreground text-xs">Cur. EFTE</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -179,13 +179,13 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
                         <TableCell className="text-xs">
                           {row.locationName || row.sheetName}
                           {clearedThenWritten(row) && (
-                            <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">then set by a rule</span>
+                            <span className="ml-2 rounded bg-gold/15 px-1.5 py-0.5 text-[10px] font-medium text-gold">then set by a rule</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-xs bg-blue-50/40 text-muted-foreground">
+                        <TableCell className="text-right font-mono text-xs bg-muted/40 text-muted-foreground">
                           {row.currentHours ?? "—"}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-xs bg-blue-50/40 text-muted-foreground">
+                        <TableCell className="text-right font-mono text-xs bg-muted/40 text-muted-foreground">
                           {row.currentEfte ?? "—"}
                         </TableCell>
                       </TableRow>
@@ -198,9 +198,9 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
 
           {hasModifies && (
             <div className="border rounded-lg overflow-hidden shadow-sm">
-              <div className="bg-blue-50/60 px-4 py-3 border-b flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-semibold text-blue-700">Rows to be adjusted</span>
+              <div className="bg-muted/60 px-4 py-3 border-b flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-semibold text-foreground">Rows to be adjusted</span>
               </div>
               <div className="overflow-y-auto max-h-[480px]">
                 <Table>
@@ -208,8 +208,8 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
                     <TableRow className="bg-muted/20">
                       <TableHead className="text-xs">Row</TableHead>
                       <TableHead className="text-xs">Location</TableHead>
-                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Cur. Hours</TableHead>
-                      <TableHead className="text-right bg-blue-50/60 text-blue-700/80 text-xs">Cur. EFTE</TableHead>
+                      <TableHead className="text-right bg-muted/60 text-muted-foreground text-xs">Cur. Hours</TableHead>
+                      <TableHead className="text-right bg-muted/60 text-muted-foreground text-xs">Cur. EFTE</TableHead>
                       <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">New Hours</TableHead>
                       <TableHead className="text-right bg-primary/5 text-primary/80 text-xs">New EFTE</TableHead>
                       <TableHead className="text-xs">Remarks</TableHead>
@@ -220,10 +220,10 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
                       <TableRow key={i}>
                         <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
                         <TableCell className="text-xs">{row.locationName || row.sheetName}</TableCell>
-                        <TableCell className="text-right font-mono text-xs bg-blue-50/40 text-muted-foreground">
+                        <TableCell className="text-right font-mono text-xs bg-muted/40 text-muted-foreground">
                           {row.currentHours ?? "—"}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-xs bg-blue-50/40 text-muted-foreground">
+                        <TableCell className="text-right font-mono text-xs bg-muted/40 text-muted-foreground">
                           {row.currentEfte ?? "—"}
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs bg-primary/5 font-semibold text-primary">
@@ -268,7 +268,7 @@ export function StepPreviewExport({ session, sessionId, onBack, onStartNewSessio
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <CheckCircle2 className="h-5 w-5 text-ok" />
               Export complete
             </DialogTitle>
             <DialogDescription asChild>

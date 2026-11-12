@@ -88,7 +88,7 @@ export function EfteCalculatorBlock() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow className="bg-amber-50/30">
+            <TableRow className="bg-gold/5">
               <TableCell className="font-medium text-xs">Reference</TableCell>
               <TableCell>
                 <Input
@@ -164,7 +164,7 @@ export function EfteCalculatorBlock() {
               </TableRow>
             ))}
 
-            <TableRow className="bg-amber-50/30 font-semibold">
+            <TableRow className="bg-gold/5 font-semibold">
               <TableCell className="text-xs">Sum</TableCell>
               <TableCell className="font-mono text-xs">{fmt(sumWorkingHours)}</TableCell>
               <TableCell></TableCell>

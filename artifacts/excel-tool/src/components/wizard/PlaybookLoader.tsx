@@ -94,7 +94,7 @@ export function PlaybookLoader({ session, sessionId, refreshSession }: PlaybookL
         )}
 
         {countDiffers && source && (
-          <Alert className="border-amber-300 bg-amber-50 text-amber-900 [&>svg]:text-amber-700">
+          <Alert className="border-gold/40 bg-gold/10 text-foreground [&>svg]:text-gold">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Number of locations changed</AlertTitle>
             <AlertDescription>

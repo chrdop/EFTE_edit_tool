@@ -27,23 +27,22 @@ export function StepIndicator({ currentStep }: StepIndicatorProps) {
                 <li key={step.name} className={cn("relative", stepIdx !== steps.length - 1 ? "pr-8 sm:pr-20 flex-1" : "")}>
                   {stepIdx !== steps.length - 1 && (
                     <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                      <div className={cn("h-0.5 w-full", isCompleted ? "bg-primary" : "bg-border")} />
+                      <div className={cn("h-0.5 w-full", isCompleted ? "bg-ok" : "bg-border")} />
                     </div>
                   )}
-                  <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-background border-2 mx-auto sm:mx-0"
-                    style={{
-                      borderColor: isCompleted ? "hsl(var(--primary))" : isCurrent ? "hsl(var(--primary))" : "hsl(var(--border))",
-                      backgroundColor: isCompleted ? "hsl(var(--primary))" : "hsl(var(--background))"
-                    }}>
+                  <div className={cn(
+                    "relative flex h-8 w-8 items-center justify-center rounded-full border-2 mx-auto sm:mx-0",
+                    isCompleted ? "bg-ok border-ok" : isCurrent ? "bg-background border-primary" : "bg-background border-border",
+                  )}>
                     {isCompleted ? (
-                      <Check className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+                      <Check className="h-5 w-5 text-background" aria-hidden="true" />
                     ) : (
                       <span className={cn("text-xs font-semibold", isCurrent ? "text-primary" : "text-muted-foreground")}>
                         {step.id}
                       </span>
                     )}
                   </div>
-                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 w-max text-center sm:text-left">
+                  <div className="hidden sm:block absolute -bottom-6 left-0 w-max text-left">
                     <span className={cn("text-xs font-medium", isCurrent ? "text-primary" : "text-muted-foreground")}>
                       {step.name}
                     </span>
@@ -52,6 +51,10 @@ export function StepIndicator({ currentStep }: StepIndicatorProps) {
               );
             })}
           </ol>
+          {/* Phone width: labels don't fit under the circles, show only the current step */}
+          <p className="sm:hidden mt-3 text-center text-xs font-medium text-primary">
+            Step {currentStep} of {steps.length} · {steps[currentStep - 1]?.name}
+          </p>
         </nav>
       </div>
     </div>

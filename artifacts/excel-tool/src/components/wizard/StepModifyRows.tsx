@@ -192,7 +192,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
       </div>
 
       {session.playbookSource && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-900 space-y-1">
+        <div className="rounded-md border border-gold/40 bg-gold/10 px-4 py-3 text-xs text-foreground space-y-1">
           <p className="font-semibold">
             Rules loaded from the playbook{session.playbookSource.fileName ? ` ${session.playbookSource.fileName}` : ""}
             {session.playbookSource.month ? ` (${session.playbookSource.month})` : ""} — please review every rule.
@@ -240,10 +240,10 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   <TableHead className="min-w-[100px]">Hours Adj.</TableHead>
                   <TableHead className="min-w-[100px]">EFTE Adj.</TableHead>
                   <TableHead className="min-w-[150px]">Scope</TableHead>
-                  <TableHead className="bg-blue-50/60 border-l text-blue-700/80 text-xs whitespace-nowrap">Cur. Hours</TableHead>
-                  <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
-                  <TableHead className="bg-rose-50/60 border-l text-rose-700/80 text-xs whitespace-nowrap">− Removed (Hours / EFTE)</TableHead>
-                  <TableHead className="bg-rose-50/60 text-rose-700/80 text-xs whitespace-nowrap">Basis (Hours / EFTE)</TableHead>
+                  <TableHead className="bg-muted/60 border-l text-muted-foreground text-xs whitespace-nowrap">Cur. Hours</TableHead>
+                  <TableHead className="bg-muted/60 text-muted-foreground text-xs whitespace-nowrap">Cur. EFTE</TableHead>
+                  <TableHead className="bg-bad/10 border-l text-bad/80 text-xs whitespace-nowrap">− Removed (Hours / EFTE)</TableHead>
+                  <TableHead className="bg-bad/10 text-bad/80 text-xs whitespace-nowrap">Basis (Hours / EFTE)</TableHead>
                   <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
                   <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">New EFTE</TableHead>
                   <TableHead className="min-w-[180px]">Remarks</TableHead>
@@ -262,7 +262,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   const isAllLocations = row.divisor > 0;
 
                   return (
-                    <TableRow key={index} className={row.pending ? "bg-amber-50/70 border-l-4 border-l-amber-500" : isAllLocations ? "bg-amber-50/30" : ""}>
+                    <TableRow key={index} className={row.pending ? "bg-gold/10 border-l-4 border-l-gold" : isAllLocations ? "bg-gold/5" : ""}>
                       {/* Location */}
                       <TableCell>
                         <Select
@@ -290,7 +290,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                             type="button"
                             onClick={() => patchRow(index, { pending: false })}
                             title="Click to confirm the amounts as they are"
-                            className="mt-1 block text-[10px] font-semibold text-amber-700 underline decoration-dotted"
+                            className="mt-1 block text-[10px] font-semibold text-gold underline decoration-dotted"
                           >
                             Amount needed — click to confirm as is
                           </button>
@@ -368,7 +368,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                           value={isAllLocations ? "all" : "own"}
                           onValueChange={(val) => updateRow(index, "divisor", val === "all" ? 1 : 0)}
                         >
-                          <SelectTrigger className={`text-xs min-w-[130px] ${isAllLocations ? "text-amber-700" : ""}`}>
+                          <SelectTrigger className={`text-xs min-w-[130px] ${isAllLocations ? "text-gold" : ""}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -379,22 +379,22 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                       </TableCell>
 
                       {/* Current Hours */}
-                      <TableCell className="bg-blue-50/60 border-l align-middle text-xs font-mono text-blue-800 whitespace-nowrap">
+                      <TableCell className="bg-muted/60 border-l align-middle text-xs font-mono text-foreground whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(cv?.hours)}
                       </TableCell>
 
                       {/* Current EFTE */}
-                      <TableCell className="bg-blue-50/60 align-middle text-xs font-mono text-blue-800 whitespace-nowrap">
+                      <TableCell className="bg-muted/60 align-middle text-xs font-mono text-foreground whitespace-nowrap">
                         {isFetchingValues ? "…" : fmt(cv?.efte)}
                       </TableCell>
 
                       {/* − Karenz */}
-                      <TableCell className="bg-rose-50/60 border-l align-middle text-xs font-mono text-rose-800 whitespace-nowrap">
+                      <TableCell className="bg-bad/10 border-l align-middle text-xs font-mono text-bad whitespace-nowrap">
                         {isFetchingValues ? "…" : !hasRemoval ? "—" : cv?.clusterRemoved ? "row → 0" : `${fmt(cv?.karenzHours)} / ${fmt(cv?.karenzEfte)}`}
                       </TableCell>
 
                       {/* Basis (after Karenz) */}
-                      <TableCell className="bg-rose-50/60 align-middle text-xs font-mono text-rose-800 whitespace-nowrap">
+                      <TableCell className="bg-bad/10 align-middle text-xs font-mono text-bad whitespace-nowrap">
                         {isFetchingValues ? "…" : !hasRemoval ? "—" : `${fmt(cv?.baseHours)} / ${fmt(cv?.baseEfte)}`}
                       </TableCell>
 
@@ -441,7 +441,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
 
       {karenzOnlyRows.length > 0 && (
         <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
-          <div className="bg-rose-50/60 px-4 py-3 border-b flex items-center gap-2 text-sm font-semibold text-rose-800">
+          <div className="bg-bad/10 px-4 py-3 border-b flex items-center gap-2 text-sm font-semibold text-bad">
             <UserMinus className="w-4 h-4" />
             <span>Rows changed by parental leave / other cluster / reallocation only (no adjustment rule)</span>
           </div>
@@ -452,9 +452,9 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   <TableHead className="min-w-[190px]">Location</TableHead>
                   <TableHead className="min-w-[70px]">Row</TableHead>
                   <TableHead className="min-w-[200px]">Who</TableHead>
-                  <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. Hours</TableHead>
-                  <TableHead className="bg-blue-50/60 text-blue-700/80 text-xs whitespace-nowrap">Cur. EFTE</TableHead>
-                  <TableHead className="bg-rose-50/60 border-l text-rose-700/80 text-xs whitespace-nowrap">− Removed (Hours / EFTE)</TableHead>
+                  <TableHead className="bg-muted/60 text-muted-foreground text-xs whitespace-nowrap">Cur. Hours</TableHead>
+                  <TableHead className="bg-muted/60 text-muted-foreground text-xs whitespace-nowrap">Cur. EFTE</TableHead>
+                  <TableHead className="bg-bad/10 border-l text-bad/80 text-xs whitespace-nowrap">− Removed (Hours / EFTE)</TableHead>
                   <TableHead className="bg-primary/5 border-l text-primary/80 text-xs whitespace-nowrap">New Hours</TableHead>
                   <TableHead className="bg-primary/5 text-primary/80 text-xs whitespace-nowrap">New EFTE</TableHead>
                 </TableRow>
@@ -467,9 +467,9 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                       <TableCell className="text-xs">{k.locationName}</TableCell>
                       <TableCell className="font-mono text-xs">{k.rowNumber}</TableCell>
                       <TableCell className="text-xs">{k.who}</TableCell>
-                      <TableCell className="bg-blue-50/60 text-xs font-mono text-blue-800 whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.hours)}</TableCell>
-                      <TableCell className="bg-blue-50/60 text-xs font-mono text-blue-800 whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.efte)}</TableCell>
-                      <TableCell className="bg-rose-50/60 border-l text-xs font-mono text-rose-800 whitespace-nowrap">
+                      <TableCell className="bg-muted/60 text-xs font-mono text-foreground whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.hours)}</TableCell>
+                      <TableCell className="bg-muted/60 text-xs font-mono text-foreground whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.efte)}</TableCell>
+                      <TableCell className="bg-bad/10 border-l text-xs font-mono text-bad whitespace-nowrap">
                         {isFetchingValues ? "…" : cv?.clusterRemoved ? "row → 0" : `${fmt(cv?.karenzHours)} / ${fmt(cv?.karenzEfte)}`}
                       </TableCell>
                       <TableCell className="bg-primary/5 border-l text-xs font-mono font-semibold text-primary whitespace-nowrap">{isFetchingValues ? "…" : fmt(cv?.baseHours)}</TableCell>

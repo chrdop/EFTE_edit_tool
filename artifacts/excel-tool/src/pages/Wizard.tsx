@@ -19,7 +19,7 @@ export function Wizard() {
   
   if (isLoading || !sessionId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
           <p className="text-sm font-medium">Initializing session...</p>
@@ -30,7 +30,7 @@ export function Wizard() {
 
   if (!session) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background space-y-4">
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
         <p className="text-muted-foreground">Failed to load session.</p>
         <Button onClick={resetSession} variant="outline">
           <RefreshCcw className="mr-2 h-4 w-4" /> Start Over
@@ -53,7 +53,7 @@ export function Wizard() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
+    <div className="min-h-screen flex flex-col font-sans">
       <header className="bg-card border-b sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">

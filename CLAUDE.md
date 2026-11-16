@@ -23,6 +23,7 @@ pnpm install                                              # first-time / after p
 pnpm run typecheck                                        # full workspace typecheck
 pnpm run build                                             # typecheck + build all packages
 pnpm --filter @workspace/api-server run dev                 # run API server (port 5000/8080 depending on env)
+pnpm --filter @workspace/api-server run test                # build + automated API tests (see "Testing / verification")
 pnpm --filter @workspace/excel-tool run dev                 # run frontend (needs PORT + BASE_PATH env)
 pnpm --filter @workspace/api-spec run codegen                # regenerate api-client-react / api-zod from openapi.yaml
 ```
@@ -48,6 +49,8 @@ Any location that still can't be matched is now surfaced (not silently dropped) 
 Each rule has a mode (`plusMinus` in the API: `+`, `−` or `=`) and a scope (`divisor` in the API). **Scope:** `divisor` 0 = own location only; `divisor` > 0 = all locations. The divisor's numeric value is irrelevant beyond 0 vs. > 0 — the UI offers an "Own location / All locations ÷ N" select that stores 0 or 1. An all-locations rule is computed from the rule's selected (source) location and **always divided by the number of uploaded locations N** (= number of uploaded files), in every mode; the one result is written to every location (decided with the user, 2026-11-05). **Mode:** `+`/`−` add/subtract the entered Hours Adj. / EFTE Adj. to the current value; `=` overwrites with the entered value, independent of the current value (also into empty cells). In own-location scope `=` writes the value as entered (unrounded); in all-locations scope it is divided by N and rounded to 2 decimals like `+`/`−`. A field left at 0 in `=` mode writes 0.
 
 The calculation exists twice and must stay in sync: `calcNew` in `artifacts/excel-tool/src/components/wizard/StepModifyRows.tsx` (live Cur./New columns) and `calcNew` plus `precomputeSourceValues` in `artifacts/api-server/src/lib/excelProcessor.ts` (what preview and export actually use); both take the location count as a parameter. Adding or changing a mode also means editing the `plusMinus` enum in `lib/api-spec/openapi.yaml`, re-running codegen and updating the type in `sessionStore.ts`; otherwise the generated zod schema rejects the new value with a 400.
+
+**Staff EFTE calculator** (`EfteCalculatorBlock.tsx`, top of Step 4): a frontend-only helper, nothing is saved or exported. EFTE per staff row = (working − holiday hours) × Reference EFTE ÷ Reference working hours; the Sum row covers the staff rows only. Each rule row has a "Use sum" button (`applyCalculatorSum` in `StepModifyRows.tsx`) that copies the Sum row's hours and EFTE into that rule's Hours Adj. / EFTE Adj. and counts as confirming a pending rule. The calculator reports its sum upward through `onSumChange`. The Reference row's "Holiday hours" field is greyed out on purpose — it never entered the calculation (decided 2026-11-16). Calculator numbers always show two decimals.
 
 ## Parental leave / other-cluster / reallocation entries (internal name: "karenz")
 
@@ -77,7 +80,9 @@ Running `artifacts/excel-tool`'s `vite dev` on Windows can fail with "Cannot fin
 
 ## Testing / verification
 
-There's no automated test suite. Verify changes by actually running the app:
+There's an automated **API test suite** (`artifacts/api-server/test/`, Node's built-in test runner, 44 tests): `pnpm --filter @workspace/api-server run test` builds the server, starts `dist/index.mjs` on a random port in a throw-away temp directory (uploads land there, not in the repo) and drives the real HTTP routes with the nine sanitized files from `EFTE_Dummy/` — auth, upload, all rule modes and scopes, Karenz/cluster/reallocation entries and their warnings, delete rows, export (master workbook cells are read back), change report and playbook. Run it after every change to `excelProcessor.ts`, `removals.ts`, `pdfGenerator.ts`, the routes or the OpenAPI spec. `EFTE_Dummy` only has Jan–May columns, so the tests process **May** and hard-code a few known values (Westbahnhof row 11 = 1396 / 10.99, row 14 = 320 / 2.58, Linz row 11 = 1456.5 / 11.33); if the dummy files change, adjust `LOC` and the expected numbers in `test/api.test.mjs`. The suite does not touch `Change_Report_*.txt` files (real data, gitignored) — it builds its own report. There are no frontend tests.
+
+Beyond that, verify changes by actually running the app:
 - Backend logic: exercise the real API routes (login → create session → upload → configure → preview/export) rather than trusting code review alone.
 - Frontend: the upload step's file input can't be driven by a native file-picker in browser automation — inject a `File` via `DataTransfer` and dispatch a `change` event instead (copy a sample file into `artifacts/excel-tool/public/` temporarily, `fetch()` it in-page, then delete the temp file afterward). Scope button lookups to `main` when clicking wizard "Next" buttons — the header's "New Session" button is also a plain `<button>` and generic selectors can hit it by accident.
 

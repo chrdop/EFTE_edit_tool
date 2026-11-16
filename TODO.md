@@ -2,6 +2,19 @@
 
 Running handoff notes across sessions — what's done, what's open, where to pick up next time.
 
+## 2026-11-16
+
+**Decisions from the open-questions list (asked and answered today):**
+- `=` rule with a field left at 0 → **stays as is** (writes 0). Version policy → **bumped by hand, only when the user asks** (so none of today's changes bumped it; still 1.3.0).
+- Reference row's "Holiday hours" → greyed out (disabled input with a tooltip), state removed.
+- Calculator numbers → always two decimals (`3,10`, `0,00`); only the calculator's `fmt` changed, the tables in Step 4 still drop trailing zeros.
+- **"Use sum" button** in every rule row (new "Calculator" column): copies the calculator's Sum row (hours + EFTE) into Hours Adj. / EFTE Adj. and confirms a pending rule. Disabled while the sum is 0 / 0. Checked in the browser (sum 192,00 / 1,20 → rule shows 192 / 1.2, no console errors).
+- **Automated API tests** added: `pnpm --filter @workspace/api-server run test` (builds, starts `dist` on a random port in a temp dir, 44 tests, ~9 s) — auth/validation, upload, own + all-locations rules in all three modes, ÷ N with 2 and 9 files, delete rows, export (cells read back from the master workbook), Karenz/cluster/reallocation incl. every warning, rule/playbook warnings, change report + playbook (previous amounts only, pending keeps old amounts, replay). Mutation check: breaking the ÷ N line made 6 tests fail. Details in `CLAUDE.md` ("Testing / verification").
+
+**Open / not done:**
+- Everything above is **uncommitted** (user's go for commits pending); push + Republish only after the user's go. No version bump (see policy).
+- Still open from the lists below: playbook-based testing of October/November data is not possible locally; "Punkt 3" landing page; Leonardo-vs-gold design feedback.
+
 ## 2026-11-12
 
 **Done today:**

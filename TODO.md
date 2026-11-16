@@ -5,25 +5,25 @@ Running handoff notes across sessions — what's done, what's open, where to pic
 ## 2026-11-16
 
 **Decisions from the open-questions list (asked and answered today):**
-- `=` rule with a field left at 0 → **stays as is** (writes 0). Version policy → **bumped by hand, only when the user asks** (so none of today's changes bumped it; still 1.3.0).
+- `=` rule with a field left at 0 → **stays as is** (writes 0). Version policy → **bumped by hand, only when the user asks** (bumped to **1.4.0** on 2026-11-16 for the "Use sum" button and the test suite).
 - Reference row's "Holiday hours" → greyed out (disabled input with a tooltip), state removed.
 - Calculator numbers → always two decimals (`3,10`, `0,00`); only the calculator's `fmt` changed, the tables in Step 4 still drop trailing zeros.
 - **"Use sum" button** in every rule row (new "Calculator" column): copies the calculator's Sum row (hours + EFTE) into Hours Adj. / EFTE Adj. and confirms a pending rule. Disabled while the sum is 0 / 0. Checked in the browser (sum 192,00 / 1,20 → rule shows 192 / 1.2, no console errors).
 - **Automated API tests** added: `pnpm --filter @workspace/api-server run test` (builds, starts `dist` on a random port in a temp dir, 44 tests, ~9 s) — auth/validation, upload, own + all-locations rules in all three modes, ÷ N with 2 and 9 files, delete rows, export (cells read back from the master workbook), Karenz/cluster/reallocation incl. every warning, rule/playbook warnings, change report + playbook (previous amounts only, pending keeps old amounts, replay). Mutation check: breaking the ÷ N line made 6 tests fail. Details in `CLAUDE.md` ("Testing / verification").
 
 **Open / not done:**
-- Everything above is **uncommitted** (user's go for commits pending); push + Republish only after the user's go. No version bump (see policy).
+- Committed (`b1d7c62`, `89a5255`, `85ba2a2`, version bump on top) but **not pushed**; push + Republish of 1.4.0 only after the user's go.
 - Still open from the lists below: playbook-based testing of October/November data is not possible locally; "Punkt 3" landing page; Leonardo-vs-gold design feedback.
 
 ## 2026-11-12
 
 **Done today:**
-- **Gold/black design applied** (**version 1.3.0**, not yet pushed/republished at the time of writing): the tool now uses the `hotel-design-gold` look instead of the default blue one. Dark only. All hex values live in `src/styles/tokens.css`; `index.css` maps shadcn's colour slots onto them (gold = primary; new `gold`/`ok`/`bad` status colours). `AccentLine.tsx` draws the gold corner line behind the content. All hard-coded Tailwind palette colours were replaced (the "− Removed"/"Basis" columns in Step 4 were the last ones, found in the browser). Inter now comes from `@fontsource/inter` (no Google Fonts link), favicon is a gold square with "XT". Details in `CLAUDE.md` ("Design").
+- **Gold/black design applied** (**version 1.3.0**, published before 2026-11-16): the tool now uses the `hotel-design-gold` look instead of the default blue one. Dark only. All hex values live in `src/styles/tokens.css`; `index.css` maps shadcn's colour slots onto them (gold = primary; new `gold`/`ok`/`bad` status colours). `AccentLine.tsx` draws the gold corner line behind the content. All hard-coded Tailwind palette colours were replaced (the "− Removed"/"Basis" columns in Step 4 were the last ones, found in the browser). Inter now comes from `@fontsource/inter` (no Google Fonts link), favicon is a gold square with "XT". Details in `CLAUDE.md` ("Design").
 - **Fixes found while checking in the browser:** the inner table scrollbars were light (`color-scheme: dark` added in `index.css`); at 375 px the step labels overlapped and the page scrolled sideways (labels are hidden below `sm`, a "Step N of 5 · name" line replaces them).
 - **Checked:** login, Steps 1–5 on desktop, 375 px width, focus ring, console without errors, `pnpm --filter @workspace/excel-tool run typecheck` clean. Not checked: the warning boxes in Step 5 with real warnings (the 3 dummy files produced none), the export dialog.
 
 **Open / not done:**
-- Push, then Republish for 1.3.0 (user's go).
+- ~~Push, then Republish for 1.3.0~~ — done (user confirmed the design is live).
 - Local dev note: `vite dev` needed the three Windows native packages matching the *installed* rollup / lightningcss / oxide versions (4.60.3 / 1.32.0 / 4.3.0); they were put straight into `node_modules/.pnpm` (nothing in `package.json`/lockfile), so a fresh `pnpm install` may need that again.
 - Feedback for the `hotel-design-gold` skill is collected in the chat of this session (tokens file vs. Tailwind/shadcn, mono font, hex in the SVG, warning colour, tables, local font, favicon).
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,7 +22,7 @@ function round2(v: number): number {
 }
 
 function fmt(v: number): string {
-  return v.toLocaleString("de-AT", { maximumFractionDigits: 2 });
+  return v.toLocaleString("de-AT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // EFTE for a staff row, relative to the Reference row:
@@ -32,9 +32,18 @@ function calcStaffEfte(row: StaffRow, referenceWorkingHours: number, referenceEf
   return round2(((row.workingHours - row.holidayHours) * referenceEfte) / referenceWorkingHours);
 }
 
-export function EfteCalculatorBlock() {
+/** Sum row of the calculator (staff rows only), handed to the adjustment rules via "Use sum". */
+export interface CalculatorSum {
+  hours: number;
+  efte: number;
+}
+
+interface EfteCalculatorBlockProps {
+  onSumChange?: (sum: CalculatorSum) => void;
+}
+
+export function EfteCalculatorBlock({ onSumChange }: EfteCalculatorBlockProps) {
   const [referenceWorkingHours, setReferenceWorkingHours] = useState(0);
-  const [referenceHolidayHours, setReferenceHolidayHours] = useState(0);
   const [referenceEfte, setReferenceEfte] = useState(0);
   const [staffRows, setStaffRows] = useState<StaffRow[]>([
     makeStaffRow("staff1"),
@@ -57,6 +66,10 @@ export function EfteCalculatorBlock() {
   );
   const sumEfte = round2(staffEfteValues.reduce((sum, v) => sum + v, 0));
 
+  useEffect(() => {
+    onSumChange?.({ hours: sumWorkingHours, efte: sumEfte });
+  }, [sumWorkingHours, sumEfte, onSumChange]);
+
   return (
     <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
       <div className="bg-muted/40 p-4 border-b flex items-center justify-between">
@@ -72,8 +85,9 @@ export function EfteCalculatorBlock() {
 
       <p className="px-4 pt-3 text-xs text-muted-foreground">
         Enter the Reference row's hours and EFTE, then each staff member's working/holiday hours — EFTE is
-        calculated relative to the Reference row. This is a standalone calculator; values here aren't saved or
-        exported, use the Sum row as a reference when filling in the adjustment rules below.
+        calculated relative to the Reference row. The values here aren't saved or exported; click "Use sum" in an
+        adjustment rule below to copy the Sum row (hours and EFTE) into that rule. The Reference row's holiday hours don't enter
+        the calculation.
       </p>
 
       <div className="overflow-x-auto p-4 pt-3">
@@ -102,10 +116,11 @@ export function EfteCalculatorBlock() {
               <TableCell>
                 <Input
                   type="number"
-                  step="any"
-                  value={referenceHolidayHours}
-                  onChange={(e) => setReferenceHolidayHours(e.target.valueAsNumber || 0)}
-                  className="w-full font-mono text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  value=""
+                  disabled
+                  readOnly
+                  title="The Reference row's holiday hours don't enter the calculation"
+                  className="w-full font-mono text-xs opacity-40 cursor-not-allowed"
                 />
               </TableCell>
               <TableCell>

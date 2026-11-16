@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Session, useUpdateSession, ModifyRowConfig, ModifyRowConfigPlusMinus } from "@workspace/api-client-react";
-import { Plus, X, Calculator, UserMinus } from "lucide-react";
+import { Plus, X, Calculator, UserMinus, ArrowDownToLine } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EfteCalculatorBlock } from "@/components/wizard/EfteCalculatorBlock";
+import { EfteCalculatorBlock, type CalculatorSum } from "@/components/wizard/EfteCalculatorBlock";
 
 interface RowCurrentValue {
   rowNumber: number;
@@ -62,6 +62,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
   );
   const [currentValues, setCurrentValues] = useState<ValuesMap>({});
   const [isFetchingValues, setIsFetchingValues] = useState(false);
+  const [calcSum, setCalcSum] = useState<CalculatorSum>({ hours: 0, efte: 0 });
   const { mutate: updateSession, isPending } = useUpdateSession();
 
   const locations = Array.from(new Set(session.files.map((f) => f.locationName).filter(Boolean)));
@@ -137,6 +138,10 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
     setRows(newRows);
   };
 
+  // Copies the calculator's Sum row into a rule (counts as confirmed, like typing an amount)
+  const applyCalculatorSum = (index: number) =>
+    patchRow(index, { hoursAdjustment: calcSum.hours, efteAdjustment: calcSum.efte, pending: false });
+
   const pendingCount = rows.filter((r) => r.pending).length;
 
   const handleNext = () => {
@@ -211,7 +216,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
         </div>
       )}
 
-      <EfteCalculatorBlock />
+      <EfteCalculatorBlock onSumChange={setCalcSum} />
 
       <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
         <div className="bg-muted/40 p-4 border-b flex items-center justify-between">
@@ -239,6 +244,7 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                   <TableHead className="min-w-[80px]">+/−</TableHead>
                   <TableHead className="min-w-[100px]">Hours Adj.</TableHead>
                   <TableHead className="min-w-[100px]">EFTE Adj.</TableHead>
+                  <TableHead className="min-w-[110px]">Calculator</TableHead>
                   <TableHead className="min-w-[150px]">Scope</TableHead>
                   <TableHead className="bg-muted/60 border-l text-muted-foreground text-xs whitespace-nowrap">Cur. Hours</TableHead>
                   <TableHead className="bg-muted/60 text-muted-foreground text-xs whitespace-nowrap">Cur. EFTE</TableHead>
@@ -360,6 +366,22 @@ export function StepModifyRows({ session, sessionId, onNext, onBack, refreshSess
                         {row.previousEfteAdjustment !== undefined && (
                           <p className="mt-0.5 text-[10px] text-muted-foreground whitespace-nowrap">Prev. {fmt(row.previousEfteAdjustment)}</p>
                         )}
+                      </TableCell>
+
+                      {/* Copy the calculator's Sum row into this rule */}
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => applyCalculatorSum(index)}
+                          disabled={calcSum.hours === 0 && calcSum.efte === 0}
+                          title={`Copy the calculator sum into Hours Adj. / EFTE Adj. (${fmt(calcSum.hours)} / ${fmt(calcSum.efte)})`}
+                          className="h-8 text-xs whitespace-nowrap"
+                        >
+                          <ArrowDownToLine className="w-3.5 h-3.5 mr-1" />
+                          Use sum
+                        </Button>
                       </TableCell>
 
                       {/* Scope: divisor 0 = own location, > 0 = all locations (÷ number of locations) */}
